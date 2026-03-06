@@ -34,6 +34,7 @@
       <button class="navBtn active" onclick="showPage('bodyPage',this)">Body Map</button>
       <button class="navBtn" onclick="showPage('historyPage',this)">History</button>
       <button class="navBtn" onclick="showPage('progressPage',this)">Progress</button>
+      <button class="navBtn" onclick="showPage('aiPage',this)">🤖 AI Trainer</button>
       <button class="navBtn" onclick="logout()">Logout</button>
     </div>
   </nav>
@@ -152,6 +153,32 @@
           <h3>Volume Over Time</h3>
           <select id="chartExSelect" onchange="renderChart()"></select>
           <canvas id="progressChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI TRAINER PAGE -->
+    <div class="page" id="aiPage">
+      <div class="aiPage">
+        <h2>🤖 AI Personal Trainer</h2>
+        <p class="aiSub">Ask me anything about workouts, diet, recovery and more!</p>
+        <div class="chatBox" id="chatBox">
+          <div class="chatMsg bot">
+            <div class="chatBubble">Hey! 💪 I'm your AI Personal Trainer. Ask me anything about workouts, diet, or fitness goals!</div>
+          </div>
+        </div>
+        <div class="chatInput">
+          <input type="text" id="chatInputField" placeholder="Ask me anything... e.g. What should I eat after workout?" onkeydown="if(event.key==='Enter') sendMessage()"/>
+          <button onclick="sendMessage()">Send</button>
+        </div>
+        <div class="quickQuestions">
+          <p>Quick Questions:</p>
+          <div class="quickBtns">
+            <button onclick="askQuick('What should I eat before a workout?')">Pre-workout diet</button>
+            <button onclick="askQuick('How much protein do I need daily?')">Protein intake</button>
+            <button onclick="askQuick('How many rest days do I need per week?')">Rest days</button>
+            <button onclick="askQuick('Give me a full week workout plan for muscle gain')">Workout plan</button>
+          </div>
         </div>
       </div>
     </div>
