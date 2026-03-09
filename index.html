@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
@@ -9,14 +9,22 @@
 </head>
 <body>
 
+<!-- LOADING OVERLAY -->
+<div class="loadingOverlay hidden" id="loadingOverlay">
+  <div class="spinner"></div>
+</div>
+
+<!-- CONFETTI CONTAINER -->
+<div id="confettiContainer"></div>
+
 <!-- AUTH SCREEN -->
 <div id="authScreen">
   <div class="authBox">
-    <h1>💪 GymBuddy</h1>
+    <h1>GymBuddy</h1>
     <p>Track your gains, crush your PRs</p>
     <div id="authMsg" class="authMsg hidden"></div>
-    <input id="authUser" type="text" placeholder="Username"/>
-    <input id="authPass" type="password" placeholder="Password"/>
+    <input id="authUser" type="text" placeholder="Username" onkeydown="if(event.key==='Enter') doAuth()"/>
+    <input id="authPass" type="password" placeholder="Password" onkeydown="if(event.key==='Enter') doAuth()"/>
     <div id="authNameWrap" class="hidden">
       <input id="authName" type="text" placeholder="Display Name"/>
     </div>
@@ -27,21 +35,19 @@
 
 <!-- APP SCREEN -->
 <div id="appScreen">
+  <!-- SLIM TOP BAR: logo + greeting only -->
   <nav>
-    <div class="logo">💪 GymBuddy</div>
+    <div class="logo">GymBuddy</div>
     <div class="navRight">
       <span id="navUser"></span>
-      <button class="navBtn active" onclick="showPage('bodyPage',this)">Body Map</button>
-      <button class="navBtn" onclick="showPage('historyPage',this)">History</button>
-      <button class="navBtn" onclick="showPage('progressPage',this)">Progress</button>
-      <button class="navBtn" onclick="showPage('aiPage',this)">🤖 AI Trainer</button>
-      <button class="navBtn" onclick="logout()">Logout</button>
     </div>
   </nav>
   <main>
+
     <!-- BODY MAP PAGE -->
     <div class="page active" id="bodyPage">
       <div class="bodyPage">
+        <div class="streakBanner" id="streakBanner"></div>
         <div class="viewToggle">
           <button class="viewBtn active" id="btnFront" onclick="setView('front')">Front</button>
           <button class="viewBtn" id="btnBack" onclick="setView('back')">Back</button>
@@ -52,15 +58,15 @@
             <ellipse cx="100" cy="30" rx="22" ry="26" fill="#3a3a3a"/>
             <rect x="91" y="54" width="18" height="14" fill="#3a3a3a"/>
             <rect x="60" y="68" width="80" height="90" rx="8" fill="#2a2a2a"/>
-            <g class="muscle-group" fill="#e05555" data-muscle="Chest" onclick="openMuscle('Chest')">
+            <g class="muscle-group" id="hm_Chest" data-muscle="Chest" onclick="openMuscle('Chest')">
               <rect x="63" y="70" width="34" height="38" rx="5"/>
               <rect x="103" y="70" width="34" height="38" rx="5"/>
             </g>
-            <g class="muscle-group" fill="#d4784a" data-muscle="Shoulders" onclick="openMuscle('Shoulders')">
+            <g class="muscle-group" id="hm_Shoulders" data-muscle="Shoulders" onclick="openMuscle('Shoulders')">
               <ellipse cx="52" cy="82" rx="14" ry="18"/>
               <ellipse cx="148" cy="82" rx="14" ry="18"/>
             </g>
-            <g class="muscle-group" fill="#4a8fd4" data-muscle="Abs" onclick="openMuscle('Abs')">
+            <g class="muscle-group" id="hm_Abs" data-muscle="Abs" onclick="openMuscle('Abs')">
               <rect x="82" y="112" width="14" height="12" rx="3"/>
               <rect x="104" y="112" width="14" height="12" rx="3"/>
               <rect x="82" y="128" width="14" height="12" rx="3"/>
@@ -68,20 +74,20 @@
               <rect x="82" y="144" width="14" height="12" rx="3"/>
               <rect x="104" y="144" width="14" height="12" rx="3"/>
             </g>
-            <g class="muscle-group" fill="#50b86c" data-muscle="Biceps" onclick="openMuscle('Biceps')">
+            <g class="muscle-group" id="hm_Biceps" data-muscle="Biceps" onclick="openMuscle('Biceps')">
               <rect x="30" y="100" width="16" height="42" rx="8"/>
               <rect x="154" y="100" width="16" height="42" rx="8"/>
             </g>
-            <g class="muscle-group" fill="#7db87a" data-muscle="Forearms" onclick="openMuscle('Forearms')">
+            <g class="muscle-group" id="hm_Forearms" data-muscle="Forearms" onclick="openMuscle('Forearms')">
               <rect x="22" y="146" width="14" height="46" rx="7"/>
               <rect x="164" y="146" width="14" height="46" rx="7"/>
             </g>
             <rect x="60" y="158" width="80" height="22" rx="6" fill="#2a2a2a"/>
-            <g class="muscle-group" fill="#9b59b6" data-muscle="Quadriceps" onclick="openMuscle('Quadriceps')">
+            <g class="muscle-group" id="hm_Quadriceps" data-muscle="Quadriceps" onclick="openMuscle('Quadriceps')">
               <rect x="62" y="182" width="34" height="72" rx="10"/>
               <rect x="104" y="182" width="34" height="72" rx="10"/>
             </g>
-            <g class="muscle-group" fill="#c0a050" data-muscle="Calves" onclick="openMuscle('Calves')">
+            <g class="muscle-group" id="hm_Calves" data-muscle="Calves" onclick="openMuscle('Calves')">
               <rect x="66" y="262" width="26" height="60" rx="10"/>
               <rect x="108" y="262" width="26" height="60" rx="10"/>
             </g>
@@ -93,38 +99,38 @@
             <ellipse cx="100" cy="30" rx="22" ry="26" fill="#3a3a3a"/>
             <rect x="91" y="54" width="18" height="14" fill="#3a3a3a"/>
             <rect x="60" y="68" width="80" height="90" rx="8" fill="#2a2a2a"/>
-            <g class="muscle-group" fill="#e05555" data-muscle="Traps" onclick="openMuscle('Traps')">
+            <g class="muscle-group" id="hm_Traps" data-muscle="Traps" onclick="openMuscle('Traps')">
               <polygon points="100,68 70,68 80,90"/>
               <polygon points="100,68 130,68 120,90"/>
             </g>
-            <g class="muscle-group" fill="#d4784a" data-muscle="Shoulders" onclick="openMuscle('Shoulders')">
+            <g class="muscle-group" data-muscle="Shoulders" onclick="openMuscle('Shoulders')">
               <ellipse cx="52" cy="82" rx="14" ry="18"/>
               <ellipse cx="148" cy="82" rx="14" ry="18"/>
             </g>
-            <g class="muscle-group" fill="#4a8fd4" data-muscle="Lats" onclick="openMuscle('Lats')">
+            <g class="muscle-group" id="hm_Lats" data-muscle="Lats" onclick="openMuscle('Lats')">
               <polygon points="60,90 60,155 90,130 82,90"/>
               <polygon points="140,90 140,155 110,130 118,90"/>
             </g>
-            <g class="muscle-group" fill="#e09b3d" data-muscle="Lower Back" onclick="openMuscle('Lower Back')">
+            <g class="muscle-group" id="hm_Lower_Back" data-muscle="Lower Back" onclick="openMuscle('Lower Back')">
               <rect x="80" y="128" width="40" height="28" rx="5"/>
             </g>
-            <g class="muscle-group" fill="#50b86c" data-muscle="Triceps" onclick="openMuscle('Triceps')">
+            <g class="muscle-group" id="hm_Triceps" data-muscle="Triceps" onclick="openMuscle('Triceps')">
               <rect x="30" y="100" width="16" height="42" rx="8"/>
               <rect x="154" y="100" width="16" height="42" rx="8"/>
             </g>
-            <g class="muscle-group" fill="#7db87a" data-muscle="Forearms" onclick="openMuscle('Forearms')">
+            <g class="muscle-group" data-muscle="Forearms" onclick="openMuscle('Forearms')">
               <rect x="22" y="146" width="14" height="46" rx="7"/>
               <rect x="164" y="146" width="14" height="46" rx="7"/>
             </g>
-            <g class="muscle-group" fill="#9b59b6" data-muscle="Glutes" onclick="openMuscle('Glutes')">
+            <g class="muscle-group" id="hm_Glutes" data-muscle="Glutes" onclick="openMuscle('Glutes')">
               <ellipse cx="83" cy="178" rx="22" ry="18"/>
               <ellipse cx="117" cy="178" rx="22" ry="18"/>
             </g>
-            <g class="muscle-group" fill="#c0504a" data-muscle="Hamstrings" onclick="openMuscle('Hamstrings')">
+            <g class="muscle-group" id="hm_Hamstrings" data-muscle="Hamstrings" onclick="openMuscle('Hamstrings')">
               <rect x="62" y="198" width="34" height="62" rx="10"/>
               <rect x="104" y="198" width="34" height="62" rx="10"/>
             </g>
-            <g class="muscle-group" fill="#c0a050" data-muscle="Calves" onclick="openMuscle('Calves')">
+            <g class="muscle-group" data-muscle="Calves" onclick="openMuscle('Calves')">
               <rect x="66" y="264" width="26" height="58" rx="10"/>
               <rect x="108" y="264" width="26" height="58" rx="10"/>
             </g>
@@ -133,6 +139,12 @@
           </svg>
         </div>
         <div class="muscleLabel" id="muscleLabel">Click a muscle to log workout</div>
+        <!-- HEATMAP LEGEND -->
+        <div class="heatmapLegend">
+          <span>Less trained</span>
+          <div class="legendBar"></div>
+          <span>More trained</span>
+        </div>
       </div>
     </div>
 
@@ -147,12 +159,151 @@
     <!-- PROGRESS PAGE -->
     <div class="page" id="progressPage">
       <div class="progressPage">
-        <h2>Progress & PRs</h2>
-        <div class="prGrid" id="prGrid"></div>
+        <h2>Progress & Stats</h2>
+        <!-- STREAK + CALENDAR SIDE BY SIDE -->
+        <div class="streakCalRow">
+          <!-- Streak compact card -->
+          <div class="streakCompact" id="streakCard">
+            <div class="streakStat">
+              <div class="streakCompactTop">
+                <span class="streakFire">🔥</span>
+                <span class="streakBigNum" id="streakNum">0</span>
+              </div>
+              <div class="streakCompactLabel">Day Streak</div>
+            </div>
+            <div class="streakDivider"></div>
+            <div class="streakStat">
+              <div class="streakCompactTop">
+                <span class="streakFire">⭐</span>
+                <span class="streakBigNum" id="bestStreakNum">0</span>
+              </div>
+              <div class="streakCompactLabel">Best Streak</div>
+            </div>
+          </div>
+
+          <!-- Calendar -->
+          <div class="calendarSection">
+            <div class="calendarHeader">
+              <button class="calNavBtn" onclick="calPrevMonth()">‹</button>
+              <span class="calMonthLabel" id="calMonthLabel"></span>
+              <button class="calNavBtn" onclick="calNextMonth()">›</button>
+            </div>
+            <div class="calGrid" id="calGrid"></div>
+            <div class="calMonthlySummary" id="calMonthlySummary"></div>
+            <div class="calDetail hidden" id="calDetail">
+              <div class="calDetailDate" id="calDetailDate"></div>
+              <div class="calDetailList" id="calDetailList"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WEEKLY MUSCLE LOAD -->
+        <div class="weeklyLoad">
+          <div class="weeklyLoadHeader">
+            <button class="calNavBtn" onclick="weekPrev()">‹</button>
+            <span class="weekLabel" id="weekLabel"></span>
+            <button class="calNavBtn" onclick="weekNext()">›</button>
+          </div>
+          <div class="muscleLoadBars" id="muscleLoadBars"></div>
+        </div>
+
         <div class="chartWrap">
           <h3>Volume Over Time</h3>
           <select id="chartExSelect" onchange="renderChart()"></select>
           <canvas id="progressChart"></canvas>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- PR PAGE -->
+    <div class="page" id="prPage">
+      <div class="prPage">
+        <h2>🏆 Personal Records</h2>
+        <p class="prSubtitle">Highest lifted weight grouped by muscle</p>
+        <div id="prByMuscle"></div>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD PAGE -->
+    <div class="page" id="leaderboardPage">
+      <div class="leaderboardPage">
+        <h2>🥇 Leaderboard</h2>
+        <p class="lbSubtitle">Top lifters across all GymBuddy users</p>
+        <div class="lbFilters">
+          <select id="lbMuscle" onchange="renderLeaderboard()">
+            <option value="all">All Muscles</option>
+            <option>Chest</option><option>Shoulders</option><option>Biceps</option>
+            <option>Triceps</option><option>Abs</option><option>Lats</option>
+            <option>Traps</option><option>Lower Back</option><option>Quadriceps</option>
+            <option>Hamstrings</option><option>Glutes</option><option>Calves</option>
+            <option>Forearms</option>
+          </select>
+        </div>
+        <div id="leaderboardList"></div>
+      </div>
+    </div>
+
+    <!-- ABOUT ME PAGE -->
+    <div class="page" id="aboutPage">
+      <div class="aboutPage">
+        <h2>👤 About Me</h2>
+        <div class="aboutCard">
+          <div class="avatarWrap">
+            <div class="avatar" id="avatarInitial"></div>
+          </div>
+          <div class="aboutForm">
+            <div class="formGroup">
+              <label>Display Name</label>
+              <input type="text" id="aboutName" placeholder="Your name"/>
+            </div>
+            <div class="formGroup">
+              <label>Age</label>
+              <input type="number" id="aboutAge" placeholder="Your age" min="10" max="100"/>
+            </div>
+            <div class="formGroup">
+              <label>Height</label>
+              <div class="heightOptions">
+                <select id="heightUnit" onchange="toggleHeightUnit()">
+                  <option value="cm">cm</option>
+                  <option value="ft">ft/in</option>
+                </select>
+                <div id="heightCm">
+                  <input type="number" id="aboutHeightCm" placeholder="e.g. 175" min="100" max="250"/>
+                  <span>cm</span>
+                </div>
+                <div id="heightFt" class="hidden">
+                  <input type="number" id="aboutHeightFt" placeholder="ft" min="4" max="8"/>
+                  <span>ft</span>
+                  <input type="number" id="aboutHeightIn" placeholder="in" min="0" max="11"/>
+                  <span>in</span>
+                </div>
+              </div>
+            </div>
+            <div class="formGroup">
+              <label>Weight</label>
+              <div class="weightOptions">
+                <input type="number" id="aboutWeight" placeholder="e.g. 170" min="50" max="500"/>
+                <select id="weightUnit">
+                  <option value="lbs">lbs</option>
+                  <option value="kg">kg</option>
+                </select>
+              </div>
+            </div>
+            <div class="formGroup">
+              <label>Fitness Goal</label>
+              <select id="aboutGoal">
+                <option value="">Select your goal</option>
+                <option>Build Muscle</option>
+                <option>Lose Weight</option>
+                <option>Improve Strength</option>
+                <option>Improve Endurance</option>
+                <option>Stay Fit</option>
+              </select>
+            </div>
+            <button class="btn" onclick="saveAbout()">Save Profile</button>
+          </div>
+          <div class="aboutStats" id="aboutStats"></div>
         </div>
       </div>
     </div>
@@ -182,25 +333,108 @@
         </div>
       </div>
     </div>
+
+    <!-- FEEDBACK PAGE -->
+    <div class="page" id="feedbackPage">
+      <div class="feedbackPage">
+        <h2>💬 Feedback</h2>
+        <p class="feedbackSub">Help us improve GymBuddy — report a bug or suggest a feature!</p>
+        <div class="feedbackCard">
+          <div class="formGroup">
+            <label>Type</label>
+            <select id="feedbackType">
+              <option value="bug">🐛 Bug Report</option>
+              <option value="feature">✨ Feature Request</option>
+              <option value="other">💡 Other</option>
+            </select>
+          </div>
+          <div class="formGroup">
+            <label>Title</label>
+            <input type="text" id="feedbackTitle" placeholder="Short description..."/>
+          </div>
+          <div class="formGroup">
+            <label>Description</label>
+            <textarea id="feedbackDesc" placeholder="Describe the bug or feature in detail..." rows="5"></textarea>
+          </div>
+          <div id="feedbackMsg" class="feedbackMsg hidden"></div>
+          <button class="btn" onclick="submitFeedback()">Submit Feedback</button>
+        </div>
+        <div class="feedbackHistory" id="feedbackHistory"></div>
+      </div>
+    </div>
+
   </main>
 </div>
 
 <!-- WORKOUT MODAL -->
 <div class="modal-overlay hidden" id="modalOverlay">
   <div class="modal">
+    <!-- CHANGE 5: X close button always visible top-right -->
+    <button class="modalCloseX" onclick="closeModal()">✕</button>
     <h2 id="modalMuscle"></h2>
     <div class="sub" id="modalDate"></div>
     <div class="exerciseList" id="exerciseList"></div>
-    <div class="logSection hidden" id="logSection">
-      <h3 id="logExName"></h3>
-      <div id="setsContainer"></div>
-      <button class="addSetBtn" onclick="addSet()">+ Add Set</button>
-    </div>
-    <div class="modalBtns">
+    <!-- Cancel + Save only shown after exercise selected -->
+    <div class="modalBtns hidden" id="modalBtns">
       <button class="btn sec" onclick="closeModal()">Cancel</button>
-      <button class="btn" id="saveBtn" onclick="saveWorkout()" style="display:none">Save Workout</button>
+      <button class="btn" id="saveBtn" onclick="saveWorkout()">Save Workout</button>
     </div>
   </div>
+</div>
+
+<!-- SLIDE-UP MORE SHEET OVERLAY -->
+<div class="sheetOverlay hidden" id="sheetOverlay" onclick="closeMoreSheet()"></div>
+
+<!-- SLIDE-UP MORE SHEET -->
+<div class="moreSheet hidden" id="moreSheet">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">More</div>
+  <div class="sheetItems">
+    <button class="sheetItem" onclick="showPageFromSheet('prPage')">
+      <span class="sheetIcon">🏆</span>
+      <span class="sheetLabel">Personal Records</span>
+      <span class="sheetArrow">›</span>
+    </button>
+    <button class="sheetItem" onclick="showPageFromSheet('leaderboardPage')">
+      <span class="sheetIcon">🥇</span>
+      <span class="sheetLabel">Leaderboard</span>
+      <span class="sheetArrow">›</span>
+    </button>
+    <button class="sheetItem" onclick="showPageFromSheet('aboutPage')">
+      <span class="sheetIcon">👤</span>
+      <span class="sheetLabel">About Me</span>
+      <span class="sheetArrow">›</span>
+    </button>
+    <button class="sheetItem" onclick="showPageFromSheet('feedbackPage')">
+      <span class="sheetIcon">💬</span>
+      <span class="sheetLabel">Report Bug / Suggest Feature</span>
+      <span class="sheetArrow">›</span>
+    </button>
+    <div class="sheetDivider"></div>
+    <button class="sheetItem danger" onclick="logoutFromSheet()">
+      <span class="sheetIcon">🚪</span>
+      <span class="sheetLabel">Logout</span>
+      <span class="sheetArrow">›</span>
+    </button>
+  </div>
+</div>
+<!-- BOTTOM NAV (minimal - 5 items) -->
+<div class="bottomNav" id="bottomNav" style="display:none">
+  <button class="bnBtn active" onclick="showPage('bodyPage',this)" id="bn_body">
+    <span class="bnIcon">🏋️</span>Body
+  </button>
+  <button class="bnBtn" onclick="showPage('historyPage',this)" id="bn_history">
+    <span class="bnIcon">📋</span>History
+  </button>
+  <button class="bnBtn" onclick="showPage('progressPage',this)" id="bn_progress">
+    <span class="bnIcon">📊</span>Progress
+  </button>
+  <button class="bnBtn" onclick="showPage('aiPage',this)" id="bn_ai">
+    <span class="bnIcon">🤖</span>AI
+  </button>
+  <button class="bnBtn" onclick="openMoreSheet()" id="bn_more">
+    <span class="bnIcon">☰</span>More
+  </button>
 </div>
 
 <script src="script.js"></script>
