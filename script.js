@@ -180,6 +180,7 @@ function showPage(id, btn) {
   if (id === 'leaderboardPage') renderLeaderboard();
   if (id === 'aboutPage') loadAbout();
   if (id === 'feedbackPage') renderFeedbackHistory();
+  if (id === 'badgesPage') renderBadges();
 }
 
 // ─── BODY VIEW ────────────────────────────────────────────────────────────────
@@ -207,14 +208,86 @@ function updateHeatmap() {
 }
 
 // ─── STREAK ───────────────────────────────────────────────────────────────────
+function getRestDays() {
+  return JSON.parse(localStorage.getItem('restDays_' + currentUser) || '[]');
+}
+
+function logRestDay() {
+  const today = new Date().toLocaleDateString('en-CA');
+  const restDays = getRestDays();
+
+  // Already logged today
+  if (restDays.includes(today)) {
+    alert('You already logged a rest day today! 😴');
+    return;
+  }
+
+  // Worked out today
+  const workedOutToday = allSessions.some(s =>
+    new Date(s.date).toLocaleDateString('en-CA') === today
+  );
+  if (workedOutToday) {
+    alert('You already logged a workout today! 💪');
+    return;
+  }
+
+  // Count consecutive rest days going back from today
+  let consecutiveRest = 0;
+  let check = new Date();
+  check.setDate(check.getDate() - 1); // start from yesterday
+  for (let i = 0; i < 3; i++) {
+    const key = check.toLocaleDateString('en-CA');
+    const wasWorkout = allSessions.some(s => new Date(s.date).toLocaleDateString('en-CA') === key);
+    if (restDays.includes(key) && !wasWorkout) {
+      consecutiveRest++;
+      check.setDate(check.getDate() - 1);
+    } else break;
+  }
+
+  // 3 rest days in a row already — 4th resets streak
+  if (consecutiveRest >= 3) {
+    restDays.push(today);
+    localStorage.setItem('restDays_' + currentUser, JSON.stringify(restDays));
+    // Clear streak by wiping rest days except today (streak calc will find no workout days)
+    localStorage.setItem('streakBroken_' + currentUser, today);
+    updateStreak();
+    renderCalendar();
+    alert('😬 4 rest days in a row! Your streak has been reset. Get back to the gym tomorrow! 💪');
+    return;
+  }
+
+  restDays.push(today);
+  localStorage.setItem('restDays_' + currentUser, JSON.stringify(restDays));
+  updateStreak();
+  if (calYear !== undefined) renderCalendar();
+  alert(`Rest day logged! 😴 Your streak is safe! (${consecutiveRest + 1}/3 rest days in a row)`);
+}
+
 function getStreak() {
-  if (!allSessions.length) return 0;
-  const days = [...new Set(allSessions.map(s => new Date(s.date).toDateString()))].sort((a, b) => new Date(b) - new Date(a));
+  if (!allSessions.length && !getRestDays().length) return 0;
+  const restDays = getRestDays();
+  const brokenDate = localStorage.getItem('streakBroken_' + currentUser);
+  const workoutDays = [...new Set(allSessions.map(s => new Date(s.date).toLocaleDateString('en-CA')))];
+
+  // Only count days after the last streak break
+  const filterFrom = brokenDate ? new Date(brokenDate + 'T12:00:00') : null;
+
+  const validWorkouts = filterFrom
+    ? workoutDays.filter(d => new Date(d + 'T12:00:00') > filterFrom)
+    : workoutDays;
+  const validRest = filterFrom
+    ? restDays.filter(d => new Date(d + 'T12:00:00') > filterFrom)
+    : restDays;
+
+  const allDays = [...new Set([...validWorkouts, ...validRest])].sort((a, b) => new Date(b) - new Date(a));
+  if (!allDays.length) return 0;
+
   let streak = 0;
   let check = new Date();
   check.setHours(0, 0, 0, 0);
-  for (let d of days) {
-    const day = new Date(d);
+
+  for (let d of allDays) {
+    const day = new Date(d + 'T12:00:00');
     day.setHours(0, 0, 0, 0);
     const diff = (check - day) / 86400000;
     if (diff <= 1) { streak++; check = day; }
@@ -224,13 +297,16 @@ function getStreak() {
 }
 
 function getBestStreak() {
-  if (!allSessions.length) return 0;
-  const days = [...new Set(allSessions.map(s => new Date(s.date).toDateString()))]
-    .map(d => new Date(d))
+  if (!allSessions.length && !getRestDays().length) return 0;
+  const restDays = getRestDays();
+  const workoutDays = [...new Set(allSessions.map(s => new Date(s.date).toLocaleDateString('en-CA')))];
+  const allDays = [...new Set([...workoutDays, ...restDays])]
+    .map(d => new Date(d + 'T12:00:00'))
     .sort((a, b) => a - b);
+  if (!allDays.length) return 0;
   let best = 1, current = 1;
-  for (let i = 1; i < days.length; i++) {
-    const diff = (days[i] - days[i-1]) / 86400000;
+  for (let i = 1; i < allDays.length; i++) {
+    const diff = (allDays[i] - allDays[i - 1]) / 86400000;
     if (diff === 1) { current++; best = Math.max(best, current); }
     else current = 1;
   }
@@ -434,6 +510,8 @@ function renderCalendar() {
     workoutMap[key].push(s);
   });
 
+  const restDays = getRestDays();
+
   const grid = document.getElementById('calGrid');
   grid.innerHTML = '';
 
@@ -464,6 +542,9 @@ function renderCalendar() {
       el.classList.add('hasWorkout');
       el.title = workoutMap[dateKey].map(s => `${s.muscle}: ${s.exercise}`).join('\n');
       el.onclick = () => showCalDetail(dateKey, workoutMap[dateKey]);
+    } else if (restDays.includes(dateKey)) {
+      el.classList.add('isRestDay');
+      el.title = 'Rest Day 😴';
     }
     grid.appendChild(el);
   }
@@ -562,15 +643,43 @@ function renderChart() {
   });
 }
 
-// ─── PR BY MUSCLE — UNDER CONSTRUCTION ───────────────────────────────────────
+// ─── PR BY MUSCLE ─────────────────────────────────────────────────────────────
 function renderPRByMuscle() {
   const el = document.getElementById('prByMuscle');
-  el.innerHTML = `
-    <div class="underConstruction">
-      <div class="ucIcon">🚧</div>
-      <div class="ucTitle">Under Construction</div>
-      <div class="ucMsg">Personal Records feature is coming soon. Keep logging your workouts!</div>
-    </div>`;
+  if (!allSessions.length) {
+    el.innerHTML = '<div class="emptyState">No workouts logged yet. Start lifting to see your PRs! 💪</div>';
+    return;
+  }
+
+  // Build best lift per exercise grouped by muscle
+  const muscleMap = {};
+  allSessions.forEach(s => {
+    if (!muscleMap[s.muscle]) muscleMap[s.muscle] = {};
+    s.sets.forEach(set => {
+      const w = parseFloat(set.weight || 0);
+      const r = parseInt(set.reps || 0);
+      if (!muscleMap[s.muscle][s.exercise] || w > muscleMap[s.muscle][s.exercise].weight) {
+        muscleMap[s.muscle][s.exercise] = { weight: w, reps: r, date: s.date };
+      }
+    });
+  });
+
+  el.innerHTML = Object.keys(muscleMap).map(muscle => `
+    <div class="prMuscleSection">
+      <div class="prMuscleHeader">${muscle}</div>
+      ${Object.keys(muscleMap[muscle]).map(ex => {
+        const pr = muscleMap[muscle][ex];
+        const date = new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return `
+        <div class="prCard">
+          <div class="prExName">${ex}</div>
+          <div class="prRight">
+            <div class="prWeightBig">${pr.weight}<span>lbs</span></div>
+            <div class="prRepsDate">${pr.reps} reps · ${date}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`).join('');
 }
 
 // ─── LEADERBOARD — UNDER CONSTRUCTION ────────────────────────────────────────
@@ -943,4 +1052,309 @@ function getTimeAgo(date) {
   if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
   if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
   return Math.floor(diff / 86400) + 'd ago';
+}
+
+// ─── BADGES ───────────────────────────────────────────────────────────────────
+// ─── BADGES ───────────────────────────────────────────────────────────────────
+const BADGES = [
+  // ── BRONZE ──────────────────────────────────────────────────────────────────
+  {
+    id:'first_step', name:'First Step', desc:'Log your first workout',
+    shape:'shield', tier:'bronze', icon:'👟',
+    progress: () => ({ cur: Math.min(allSessions.length, 1), max: 1 })
+  },
+  {
+    id:'bench_100', name:'Bench 100', desc:'Bench Press 100 lbs',
+    shape:'shield', tier:'bronze', icon:'🏋️',
+    progress: () => {
+      const best = getBestWeight('Bench Press');
+      return { cur: Math.min(best, 100), max: 100 };
+    }
+  },
+  {
+    id:'squat_100', name:'Squat 100', desc:'Squat 100 lbs',
+    shape:'shield', tier:'bronze', icon:'🦵',
+    progress: () => ({ cur: Math.min(getBestWeight('Squat'), 100), max: 100 })
+  },
+  {
+    id:'deadlift_100', name:'Deadlift 100', desc:'Deadlift 100 lbs',
+    shape:'shield', tier:'bronze', icon:'💀',
+    progress: () => ({ cur: Math.min(getBestWeight('Deadlift'), 100), max: 100 })
+  },
+  {
+    id:'streak_7', name:'On Fire', desc:'7 Day Streak',
+    shape:'hexagon', tier:'bronze', icon:'🔥',
+    progress: () => ({ cur: Math.min(getBestStreak(), 7), max: 7 })
+  },
+  {
+    id:'sets_75', name:'Volume 75', desc:'75 sets in a week',
+    shape:'circle', tier:'bronze', icon:'📦',
+    progress: () => ({ cur: Math.min(getWeeklySets(), 75), max: 75 })
+  },
+  {
+    id:'pushup_25', name:'Push 25', desc:'25 Push-Ups in a single set',
+    shape:'star', tier:'bronze', icon:'💪',
+    progress: () => ({ cur: Math.min(getBestReps('Push-Up'), 25), max: 25 })
+  },
+  {
+    id:'pullup_10', name:'Pull 10', desc:'10 Pull-Ups in a single set',
+    shape:'star', tier:'bronze', icon:'🔝',
+    progress: () => ({ cur: Math.min(getBestReps('Pull-Up'), 10), max: 10 })
+  },
+
+  // ── SILVER ──────────────────────────────────────────────────────────────────
+  {
+    id:'bench_150', name:'Bench 150', desc:'Bench Press 150 lbs',
+    shape:'shield', tier:'silver', icon:'🏋️',
+    progress: () => ({ cur: Math.min(getBestWeight('Bench Press'), 150), max: 150 })
+  },
+  {
+    id:'squat_150', name:'Squat 150', desc:'Squat 150 lbs',
+    shape:'shield', tier:'silver', icon:'🦵',
+    progress: () => ({ cur: Math.min(getBestWeight('Squat'), 150), max: 150 })
+  },
+  {
+    id:'deadlift_200', name:'Deadlift 200', desc:'Deadlift 200 lbs',
+    shape:'shield', tier:'silver', icon:'💀',
+    progress: () => ({ cur: Math.min(getBestWeight('Deadlift'), 200), max: 200 })
+  },
+  {
+    id:'streak_30', name:'Iron Habit', desc:'30 Day Streak',
+    shape:'hexagon', tier:'silver', icon:'⚡',
+    progress: () => ({ cur: Math.min(getBestStreak(), 30), max: 30 })
+  },
+  {
+    id:'sets_100', name:'Volume 100', desc:'100 sets in a week',
+    shape:'circle', tier:'silver', icon:'📦',
+    progress: () => ({ cur: Math.min(getWeeklySets(), 100), max: 100 })
+  },
+  {
+    id:'pushup_50', name:'Push 50', desc:'50 Push-Ups in a single set',
+    shape:'star', tier:'silver', icon:'💪',
+    progress: () => ({ cur: Math.min(getBestReps('Push-Up'), 50), max: 50 })
+  },
+  {
+    id:'pullup_20', name:'Pull 20', desc:'20 Pull-Ups in a single set',
+    shape:'star', tier:'silver', icon:'🔝',
+    progress: () => ({ cur: Math.min(getBestReps('Pull-Up'), 20), max: 20 })
+  },
+
+  // ── GOLD ────────────────────────────────────────────────────────────────────
+  {
+    id:'bench_200', name:'Bench 200', desc:'Bench Press 200 lbs',
+    shape:'shield', tier:'gold', icon:'🏋️',
+    progress: () => ({ cur: Math.min(getBestWeight('Bench Press'), 200), max: 200 })
+  },
+  {
+    id:'squat_200', name:'Squat 200', desc:'Squat 200 lbs',
+    shape:'shield', tier:'gold', icon:'🦵',
+    progress: () => ({ cur: Math.min(getBestWeight('Squat'), 200), max: 200 })
+  },
+  {
+    id:'deadlift_250', name:'Deadlift 250', desc:'Deadlift 250 lbs',
+    shape:'shield', tier:'gold', icon:'💀',
+    progress: () => ({ cur: Math.min(getBestWeight('Deadlift'), 250), max: 250 })
+  },
+  {
+    id:'streak_100', name:'Centurion', desc:'100 Day Streak',
+    shape:'hexagon', tier:'gold', icon:'👑',
+    progress: () => ({ cur: Math.min(getBestStreak(), 100), max: 100 })
+  },
+  {
+    id:'pushup_75', name:'Push 75', desc:'75 Push-Ups in a single set',
+    shape:'star', tier:'gold', icon:'💪',
+    progress: () => ({ cur: Math.min(getBestReps('Push-Up'), 75), max: 75 })
+  },
+  {
+    id:'pullup_25', name:'Pull 25', desc:'25 Pull-Ups in a single set',
+    shape:'star', tier:'gold', icon:'🔝',
+    progress: () => ({ cur: Math.min(getBestReps('Pull-Up'), 25), max: 25 })
+  },
+
+  // ── PLATINUM ────────────────────────────────────────────────────────────────
+  {
+    id:'full_body', name:'Full Body', desc:'Train all 13 muscles in one week',
+    shape:'star', tier:'gold', icon:'🌟',
+    progress: () => {
+      // Check each week in history
+      const total = Object.keys(EXERCISES).length;
+      let bestWeekCount = 0;
+
+      // Group sessions by week
+      const weekMap = {};
+      allSessions.forEach(s => {
+        const d = new Date(s.date);
+        const monday = new Date(d);
+        monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        monday.setHours(0,0,0,0);
+        const key = monday.toLocaleDateString('en-CA');
+        if (!weekMap[key]) weekMap[key] = new Set();
+        weekMap[key].add(s.muscle);
+      });
+
+      Object.values(weekMap).forEach(muscles => {
+        bestWeekCount = Math.max(bestWeekCount, muscles.size);
+      });
+
+      return { cur: bestWeekCount, max: total };
+    }
+  },
+  {
+    id:'pushup_100', name:'Push 100', desc:'100 Push-Ups in a single set',
+    shape:'star', tier:'platinum', icon:'💪',
+    progress: () => ({ cur: Math.min(getBestReps('Push-Up'), 100), max: 100 })
+  },
+  {
+    id:'deadlift_300', name:'Deadlift 300', desc:'Deadlift 300 lbs',
+    shape:'shield', tier:'platinum', icon:'💀',
+    progress: () => ({ cur: Math.min(getBestWeight('Deadlift'), 300), max: 300 })
+  },
+  {
+    id:'streak_365', name:'Legendary', desc:'365 Day Streak',
+    shape:'hexagon', tier:'platinum', icon:'🌟',
+    progress: () => ({ cur: Math.min(getBestStreak(), 365), max: 365 })
+  },
+
+  // ── DIAMOND ─────────────────────────────────────────────────────────────────
+  {
+    id:'pushup_150', name:'Push 150', desc:'150 Push-Ups in a single set',
+    shape:'star', tier:'diamond', icon:'💪',
+    progress: () => ({ cur: Math.min(getBestReps('Push-Up'), 150), max: 150 })
+  },
+  {
+    id:'deadlift_400', name:'Deadlift 400', desc:'Deadlift 400 lbs',
+    shape:'shield', tier:'diamond', icon:'💀',
+    progress: () => ({ cur: Math.min(getBestWeight('Deadlift'), 400), max: 400 })
+  }
+];
+
+// ── BADGE HELPERS ─────────────────────────────────────────────────────────────
+function getBestWeight(exercise) {
+  let best = 0;
+  allSessions.filter(s => s.exercise === exercise)
+    .forEach(s => s.sets.forEach(set => { best = Math.max(best, parseFloat(set.weight||0)); }));
+  return best;
+}
+
+function getBestReps(exercise) {
+  let best = 0;
+  allSessions.filter(s => s.exercise === exercise)
+    .forEach(s => s.sets.forEach(set => { best = Math.max(best, parseInt(set.reps||0)); }));
+  return best;
+}
+
+function getWeeklySets() {
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  monday.setHours(0,0,0,0);
+  return allSessions
+    .filter(s => new Date(s.date) >= monday)
+    .reduce((sum, s) => sum + s.sets.length, 0);
+}
+
+// ── TIER COLORS ───────────────────────────────────────────────────────────────
+const TIER_COLORS = {
+  bronze:   { outer:'#cd7f32', inner:'#a0522d', glow:'rgba(205,127,50,0.5)',  grad:'#cd7f32,#a0522d', ring:'#cd7f32' },
+  silver:   { outer:'#c0c0c0', inner:'#888',    glow:'rgba(192,192,192,0.5)', grad:'#e0e0e0,#aaa',    ring:'#c0c0c0' },
+  gold:     { outer:'#ffd700', inner:'#c8a400', glow:'rgba(255,215,0,0.6)',   grad:'#ffd700,#c8a400', ring:'#ffd700' },
+  platinum: { outer:'#e5e4e2', inner:'#a9a9a9', glow:'rgba(229,228,226,0.7)', grad:'#f0f0f0,#c0bebe', ring:'#e5e4e2' },
+  diamond:  { outer:'#b9f2ff', inner:'#5bcefa', glow:'rgba(91,206,250,0.8)',  grad:'#b9f2ff,#5bcefa', ring:'#b9f2ff' }
+};
+
+// ── SVG BADGE WITH LIQUID FILL ────────────────────────────────────────────────
+function makeBadgeSVG(badge, pct) {
+  const t = TIER_COLORS[badge.tier];
+  const unlocked = pct >= 1;
+  const glowFilter = unlocked ? `drop-shadow(0 0 10px ${t.glow})` : 'none';
+  const fillPct = Math.round(pct * 100);
+  const fillY = 100 - fillPct; // top of fill in percentage
+
+  const shapes = {
+    shield:  `<path d="M50,8 L88,22 L88,52 C88,72 50,92 50,92 C50,92 12,72 12,52 L12,22 Z"/>`,
+    hexagon: `<polygon points="50,6 90,28 90,72 50,94 10,72 10,28"/>`,
+    circle:  `<circle cx="50" cy="50" r="42"/>`,
+    star:    `<polygon points="50,4 61,35 95,35 68,57 79,91 50,70 21,91 32,57 5,35 39,35"/>`
+  };
+
+  const uniqueId = badge.id;
+
+  return `
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"
+         style="width:72px;height:72px;filter:${glowFilter};transition:all .3s">
+      <defs>
+        <!-- dark base gradient -->
+        <linearGradient id="base_${uniqueId}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#2a2a2a"/>
+          <stop offset="100%" style="stop-color:#1a1a1a"/>
+        </linearGradient>
+        <!-- fill color gradient -->
+        <linearGradient id="fill_${uniqueId}" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:${t.grad.split(',')[0]};stop-opacity:1"/>
+          <stop offset="100%" style="stop-color:${t.grad.split(',')[1]};stop-opacity:0.8"/>
+        </linearGradient>
+        <!-- clip to badge shape -->
+        <clipPath id="clip_${uniqueId}">
+          ${shapes[badge.shape]}
+        </clipPath>
+        <!-- clip fill to only bottom portion based on progress -->
+        <clipPath id="fillclip_${uniqueId}">
+          <rect x="0" y="${fillY}" width="100" height="${fillPct}"/>
+        </clipPath>
+      </defs>
+
+      <!-- dark background shape -->
+      <g clip-path="url(#clip_${uniqueId})">
+        <rect x="0" y="0" width="100" height="100" fill="url(#base_${uniqueId})"/>
+      </g>
+
+      <!-- liquid fill from bottom -->
+      <g clip-path="url(#clip_${uniqueId})">
+        <g clip-path="url(#fillclip_${uniqueId})">
+          <rect x="0" y="0" width="100" height="100" fill="url(#fill_${uniqueId})"/>
+        </g>
+      </g>
+
+      <!-- shape border -->
+      <g fill="none" stroke="${t.outer}" stroke-width="2.5" opacity="${unlocked ? 1 : 0.4}">
+        ${shapes[badge.shape]}
+      </g>
+
+      <!-- icon on top -->
+      <text x="50" y="58" text-anchor="middle" font-size="28"
+            style="opacity:${unlocked ? 1 : 0.5}">${badge.icon}</text>
+    </svg>`;
+}
+
+function renderBadges() {
+  const tiers = ['bronze','silver','gold','platinum','diamond'];
+  const tierLabels = { bronze:'🥉 Bronze', silver:'🥈 Silver', gold:'🥇 Gold', platinum:'💎 Platinum', diamond:'💠 Diamond' };
+
+  let unlockedCount = 0;
+  let html = '';
+
+  tiers.forEach(tier => {
+    const tierBadges = BADGES.filter(b => b.tier === tier);
+    html += `<div class="badgesTierTitle">${tierLabels[tier]}</div><div class="badgesGrid">`;
+    tierBadges.forEach(b => {
+      const { cur, max } = b.progress();
+      const pct = max > 0 ? cur / max : 0;
+      const unlocked = pct >= 1;
+      if (unlocked) unlockedCount++;
+      const pctLabel = unlocked ? 'Completed' : `${cur} / ${max}`;
+      html += `
+        <div class="badgeCard ${unlocked ? 'unlocked' : 'locked'}">
+          ${makeBadgeSVG(b, pct)}
+          <div class="badgeName">${b.name}</div>
+          <div class="badgeDesc">${b.desc}</div>
+          <div class="badgeProgress">${pctLabel}</div>
+          <div class="badgeTier ${b.tier}">${b.tier}</div>
+        </div>`;
+    });
+    html += '</div>';
+  });
+
+  document.getElementById('badgesUnlocked').innerHTML =
+    `<div class="badgesSummary">${unlockedCount} / ${BADGES.length} Badges Unlocked</div>`;
+  document.getElementById('badgesLocked').innerHTML = html;
 }

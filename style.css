@@ -105,7 +105,7 @@ main{flex:1;padding:8px 16px 90px;max-width:1200px;margin:0 auto;width:100%;over
 
 /* ─── WORKOUT MODAL ────────────────────────────────────────── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
-.modal{background:var(--bg3);border-radius:4px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:28px;border:1px solid var(--border2);box-shadow:var(--goldGlow);position:relative}
+.modal{background:var(--bg3);border-radius:4px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:28px;border:1px solid var(--border2);box-shadow:var(--goldGlow);position:relative;box-sizing:border-box}
 .modal h2{color:var(--gold2);margin-bottom:4px;font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px}
 .modal .sub{color:var(--text3);font-size:.8rem;margin-bottom:20px;letter-spacing:1px;text-transform:uppercase}
 
@@ -119,11 +119,11 @@ main{flex:1;padding:8px 16px 90px;max-width:1200px;margin:0 auto;width:100%;over
 .exCard.selected{border-color:var(--gold);background:#1a1500;box-shadow:0 0 10px rgba(201,168,76,0.2)}
 .exCard h4{margin-bottom:4px;color:var(--text);font-size:.9rem;letter-spacing:.5px}
 .exCard p{color:var(--text4);font-size:.78rem;text-transform:uppercase;letter-spacing:1px}
-.inlineLog{background:var(--bg5);border-radius:2px;padding:16px;margin-top:8px;border-left:2px solid var(--gold)}
+.inlineLog{background:var(--bg5);border-radius:2px;padding:14px;margin-top:8px;border-left:2px solid var(--gold);overflow:hidden;box-sizing:border-box}
 .inlineLog h4{color:var(--gold);margin-bottom:12px;font-size:.85rem;letter-spacing:2px;text-transform:uppercase}
-.setRow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.setRow label{color:var(--text4);font-size:.78rem;width:44px;text-transform:uppercase;letter-spacing:1px}
-.setRow input{flex:1;padding:9px 12px;border-radius:2px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);font-size:.9rem;font-family:'Inter',sans-serif}
+.setRow{display:flex;gap:6px;align-items:center;margin-bottom:8px;width:100%;box-sizing:border-box}
+.setRow label{color:var(--text4);font-size:.78rem;width:38px;min-width:38px;flex-shrink:0;text-transform:uppercase;letter-spacing:1px}
+.setRow input{flex:1;min-width:0;padding:9px 8px;border-radius:2px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);font-size:.9rem;font-family:'Inter',sans-serif;box-sizing:border-box}
 .setRow input:focus{outline:none;border-color:var(--gold);background:#0d0d00}
 .setRow input::placeholder{color:var(--text5)}
 .addSetBtn{background:none;border:1px dashed var(--border3);color:var(--text4);padding:9px;border-radius:2px;cursor:pointer;width:100%;margin-top:6px;transition:.2s;font-size:.78rem;letter-spacing:2px;text-transform:uppercase;font-family:'Inter',sans-serif}
@@ -663,3 +663,124 @@ main { padding-bottom: 90px !important; }
   box-shadow:var(--goldGlow);
   transform:scale(1.1);
 }
+
+/* ─── PERSONAL RECORDS ─────────────────────────────────────── */
+.prPage h2{ margin-top:0 }
+.prSubtitle{ color:var(--text4);font-size:.75rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:20px }
+.prMuscleSection{ margin-bottom:24px }
+.prMuscleHeader{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1rem;letter-spacing:3px;
+  color:var(--gold2);
+  padding:6px 0 8px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:10px;
+  text-transform:uppercase;
+}
+.prCard{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;padding:12px 14px;
+  margin-bottom:8px;transition:.2s;
+}
+.prCard:hover{ border-color:var(--gold3);box-shadow:var(--goldGlow) }
+.prExName{
+  font-size:.85rem;font-weight:600;
+  color:var(--text2);flex:1;
+}
+.prRight{ text-align:right }
+.prWeightBig{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.4rem;color:var(--gold2);
+  letter-spacing:1px;line-height:1;
+}
+.prWeightBig span{ font-size:.75rem;color:var(--text4);margin-left:2px }
+.prRepsDate{
+  font-size:.68rem;color:var(--text4);
+  margin-top:2px;letter-spacing:.5px;
+}
+
+/* ─── BADGES PAGE ──────────────────────────────────────────── */
+.badgesPage h2{ margin-top:0 }
+.badgesSubtitle{ color:var(--text4);font-size:.75rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px }
+.badgesSummary{
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:8px;padding:12px 16px;
+  font-family:'Bebas Neue',sans-serif;font-size:1.1rem;
+  letter-spacing:2px;color:var(--gold2);
+  margin-bottom:20px;text-align:center;
+}
+.badgesTierTitle{
+  font-size:.72rem;letter-spacing:2px;text-transform:uppercase;
+  color:var(--text4);margin-bottom:10px;margin-top:4px;
+  padding-bottom:6px;border-bottom:1px solid var(--border);
+}
+.badgesGrid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-bottom:24px;
+}
+.badgeCard{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:12px;padding:14px 8px 10px;
+  display:flex;flex-direction:column;align-items:center;
+  text-align:center;transition:.2s;
+}
+.badgeCard.unlocked{ border-color:var(--border2) }
+.badgeCard.unlocked:hover{ transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.4) }
+.badgeName{
+  font-size:.74rem;font-weight:700;
+  color:var(--text);margin-top:6px;letter-spacing:.3px;
+}
+.badgeDesc{
+  font-size:.58rem;color:var(--text4);
+  margin-top:3px;line-height:1.4;
+}
+.badgeProgress{
+  font-size:.62rem;color:var(--text3);
+  margin-top:4px;font-weight:600;letter-spacing:.5px;
+}
+.badgeTier{
+  font-size:.56rem;text-transform:uppercase;
+  letter-spacing:1.5px;font-weight:700;
+  margin-top:5px;padding:2px 7px;border-radius:10px;
+}
+.badgeTier.bronze{ color:#cd7f32;background:rgba(205,127,50,0.15) }
+.badgeTier.silver{ color:#c0c0c0;background:rgba(192,192,192,0.15) }
+.badgeTier.gold{ color:#ffd700;background:rgba(255,215,0,0.15) }
+.badgeTier.platinum{ color:#e5e4e2;background:rgba(229,228,226,0.15) }
+
+/* ─── REST DAY BUTTON ──────────────────────────────────────── */
+.restDayBtn{
+  display:block;
+  margin:14px auto 0;
+  background:transparent;
+  border:1px solid #3a6bc4;
+  color:#6a9fd8;
+  padding:9px 24px;
+  border-radius:20px;
+  font-size:.78rem;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  cursor:pointer;
+  font-family:'Inter',sans-serif;
+  font-weight:600;
+  transition:.2s;
+}
+.restDayBtn:hover{
+  background:rgba(58,107,196,0.15);
+  border-color:#6a9fd8;
+  color:#a0c4f1;
+}
+
+/* ─── REST DAY CALENDAR ────────────────────────────────────── */
+.calDay.isRestDay{
+  background:rgba(58,107,196,0.25);
+  border:1px solid #3a6bc4;
+  color:#6a9fd8;
+  border-radius:4px;
+}
+
+/* ─── DIAMOND TIER ─────────────────────────────────────────── */
+.badgeTier.diamond{ color:#b9f2ff;background:rgba(185,242,255,0.15) }

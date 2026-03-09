@@ -147,6 +147,7 @@
           <div class="legendBar"></div>
           <span>More trained</span>
         </div>
+        <button class="restDayBtn" onclick="logRestDay()">😴 Log Rest Day</button>
       </div>
     </div>
 
@@ -207,6 +208,25 @@
           <select id="chartExSelect" onchange="renderChart()"></select>
           <canvas id="progressChart"></canvas>
         </div>
+      </div>
+    </div>
+
+    <!-- BADGES PAGE -->
+    <div class="page" id="badgesPage">
+      <div class="badgesPage">
+        <h2>🏅 Badges</h2>
+        <p class="badgesSubtitle">Earn badges by crushing your goals</p>
+        <div id="badgesUnlocked"></div>
+        <div id="badgesLocked"></div>
+      </div>
+    </div>
+
+    <!-- PERSONAL RECORDS PAGE -->
+    <div class="page" id="prPage">
+      <div class="prPage">
+        <h2>🏆 Personal Records</h2>
+        <p class="prSubtitle">Your best lift per exercise</p>
+        <div id="prByMuscle"></div>
       </div>
     </div>
 
@@ -338,9 +358,15 @@
   <div class="sheetHandle"></div>
   <div class="sheetTitle">More</div>
   <div class="sheetItems">
-    <button class="sheetItem" onclick="showPageFromSheet('aboutPage')">
-      <span class="sheetIcon">👤</span>
-      <span class="sheetLabel">About Me</span>
+    <button class="sheetItem" onclick="showPageFromSheet('badgesPage')">
+      <span class="sheetIcon">🏅</span>
+      <span class="sheetLabel">Badges</span>
+      <span class="sheetArrow">›</span>
+    </button>
+    <div class="sheetDivider"></div>
+    <button class="sheetItem" onclick="showPageFromSheet('prPage')">
+      <span class="sheetIcon">🏆</span>
+      <span class="sheetLabel">Personal Records</span>
       <span class="sheetArrow">›</span>
     </button>
     <div class="sheetDivider"></div>
