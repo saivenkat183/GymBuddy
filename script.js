@@ -130,9 +130,11 @@ async function doAuth() {
     document.getElementById('bottomNav').style.display = 'flex';
     document.getElementById('navUser').textContent = 'Hey, ' + data.name + '!';
     document.getElementById('avatarInitial').textContent = data.name[0].toUpperCase();
+    document.getElementById('navAvatarInitial').textContent = data.name[0].toUpperCase();
     await loadSessions();
     updateStreak();
     updateHeatmap();
+    loadProfileImage();
     const now = new Date();
     calYear = now.getFullYear();
     calMonth = now.getMonth();
@@ -582,7 +584,52 @@ async function renderLeaderboard() {
     </div>`;
 }
 
-// ─── ABOUT ME ─────────────────────────────────────────────────────────────────
+// ─── PROFILE IMAGE ────────────────────────────────────────────────────────────
+function handleProfileImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result;
+    localStorage.setItem('profileImg_' + currentUser, base64);
+    updateAllAvatars(base64);
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateAllAvatars(base64) {
+  // Main about page avatar
+  const avatarEl = document.getElementById('avatarInitial');
+  if (base64) {
+    avatarEl.style.backgroundImage = `url(${base64})`;
+    avatarEl.style.backgroundSize = 'cover';
+    avatarEl.style.backgroundPosition = 'center';
+    avatarEl.textContent = '';
+  }
+  // Nav avatar
+  const navAvatar = document.getElementById('navAvatarInitial');
+  if (base64) {
+    navAvatar.style.backgroundImage = `url(${base64})`;
+    navAvatar.style.backgroundSize = 'cover';
+    navAvatar.style.backgroundPosition = 'center';
+    navAvatar.textContent = '';
+  }
+  // Composer avatar in feed
+  const composerAvatar = document.getElementById('composerAvatar');
+  if (composerAvatar && base64) {
+    composerAvatar.style.backgroundImage = `url(${base64})`;
+    composerAvatar.style.backgroundSize = 'cover';
+    composerAvatar.style.backgroundPosition = 'center';
+    composerAvatar.textContent = '';
+  }
+}
+
+function loadProfileImage() {
+  const base64 = localStorage.getItem('profileImg_' + currentUser);
+  if (base64) updateAllAvatars(base64);
+}
+
+
 function toggleHeightUnit() {
   const unit = document.getElementById('heightUnit').value;
   document.getElementById('heightCm').classList.toggle('hidden', unit === 'ft');
@@ -591,6 +638,21 @@ function toggleHeightUnit() {
 
 function loadAbout() {
   const data = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
+  const hasData = data.name || data.age || data.heightCm || data.heightFt || data.weight || data.goal;
+  loadProfileImage();
+
+  if (hasData) {
+    // Show view mode
+    document.getElementById('aboutViewMode').classList.remove('hidden');
+    document.getElementById('aboutEditMode').classList.add('hidden');
+    renderAboutView(data);
+  } else {
+    // First time — show edit mode
+    document.getElementById('aboutViewMode').classList.add('hidden');
+    document.getElementById('aboutEditMode').classList.remove('hidden');
+  }
+
+  // Populate fields anyway for editing later
   if (data.name) document.getElementById('aboutName').value = data.name;
   if (data.age) document.getElementById('aboutAge').value = data.age;
   if (data.heightCm) document.getElementById('aboutHeightCm').value = data.heightCm;
@@ -600,7 +662,33 @@ function loadAbout() {
   if (data.weightUnit) document.getElementById('weightUnit').value = data.weightUnit;
   if (data.goal) document.getElementById('aboutGoal').value = data.goal;
   if (data.heightUnit) { document.getElementById('heightUnit').value = data.heightUnit; toggleHeightUnit(); }
+
   renderAboutStats(data);
+}
+
+function enableAboutEdit() {
+  document.getElementById('aboutViewMode').classList.add('hidden');
+  document.getElementById('aboutEditMode').classList.remove('hidden');
+}
+
+function renderAboutView(data) {
+  let height = '—';
+  if (data.heightUnit === 'ft' && data.heightFt) height = `${data.heightFt}ft ${data.heightIn || 0}in`;
+  else if (data.heightCm) height = `${data.heightCm} cm`;
+
+  const fields = [
+    { label: 'Name', value: data.name || '—' },
+    { label: 'Age', value: data.age ? data.age + ' yrs' : '—' },
+    { label: 'Height', value: height },
+    { label: 'Weight', value: data.weight ? data.weight + ' ' + (data.weightUnit || 'lbs') : '—' },
+    { label: 'Goal', value: data.goal || '—' },
+  ];
+
+  document.getElementById('aboutViewGrid').innerHTML = fields.map(f => `
+    <div class="aboutViewItem">
+      <div class="aboutViewLabel">${f.label}</div>
+      <div class="aboutViewValue">${f.value}</div>
+    </div>`).join('');
 }
 
 function saveAbout() {
@@ -617,27 +705,17 @@ function saveAbout() {
     goal: document.getElementById('aboutGoal').value
   };
   localStorage.setItem('about_' + currentUser, JSON.stringify(data));
+
+  // Switch back to view mode
+  document.getElementById('aboutEditMode').classList.add('hidden');
+  document.getElementById('aboutViewMode').classList.remove('hidden');
+  renderAboutView(data);
   renderAboutStats(data);
   alert('Profile saved! ✅');
 }
 
 function renderAboutStats(data) {
-  const totalWorkouts = allSessions.length;
-  const streak = getStreak();
-  const totalSets = allSessions.reduce((sum, s) => sum + s.sets.length, 0);
-  const muscles = [...new Set(allSessions.map(s => s.muscle))].length;
-  let height = '—';
-  if (data.heightUnit === 'ft' && data.heightFt) height = `${data.heightFt}ft ${data.heightIn || 0}in`;
-  else if (data.heightCm) height = `${data.heightCm} cm`;
-  document.getElementById('aboutStats').innerHTML = `
-    <div class="statCard"><div class="statVal">${totalWorkouts}</div><div class="statLabel">Total Workouts</div></div>
-    <div class="statCard"><div class="statVal">🔥 ${streak}</div><div class="statLabel">Day Streak</div></div>
-    <div class="statCard"><div class="statVal">${totalSets}</div><div class="statLabel">Total Sets</div></div>
-    <div class="statCard"><div class="statVal">${muscles}</div><div class="statLabel">Muscles Trained</div></div>
-    <div class="statCard"><div class="statVal">${height}</div><div class="statLabel">Height</div></div>
-    <div class="statCard"><div class="statVal">${data.weight ? data.weight + ' ' + (data.weightUnit || 'lbs') : '—'}</div><div class="statLabel">Weight</div></div>
-    <div class="statCard"><div class="statVal" style="font-size:1rem">${data.goal || '—'}</div><div class="statLabel">Goal</div></div>
-  `;
+  document.getElementById('aboutStats').innerHTML = '';
 }
 
 // ─── AI TRAINER ───────────────────────────────────────────────────────────────
@@ -727,4 +805,142 @@ function renderFeedbackHistory() {
       <div class="fiDesc">${f.desc}</div>
       <div class="fiDate">${new Date(f.date).toLocaleString()}</div>
     </div>`).join('');
+}
+
+// ─── COMMUNITY FEED / DRAWER ──────────────────────────────────────────────────
+function openDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('hidden');
+  const drawer = document.getElementById('drawer');
+  drawer.classList.remove('hidden');
+  requestAnimationFrame(() => drawer.classList.add('open'));
+  // Set composer avatar
+  if (currentUser) {
+    const name = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}').name || currentUser;
+    const profileImg = localStorage.getItem('profileImg_' + currentUser);
+    const composerAvatar = document.getElementById('composerAvatar');
+    if (profileImg) {
+      composerAvatar.style.backgroundImage = `url(${profileImg})`;
+      composerAvatar.style.backgroundSize = 'cover';
+      composerAvatar.style.backgroundPosition = 'center';
+      composerAvatar.textContent = '';
+    } else {
+      composerAvatar.textContent = name[0].toUpperCase();
+    }
+  }
+  renderFeed();
+}
+
+function closeDrawer() {
+  const drawer = document.getElementById('drawer');
+  drawer.classList.remove('open');
+  setTimeout(() => {
+    drawer.classList.add('hidden');
+    document.getElementById('drawerOverlay').classList.add('hidden');
+  }, 380);
+}
+
+let selectedImageBase64 = null;
+
+function handleImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    selectedImageBase64 = e.target.result;
+    document.getElementById('imagePreview').src = selectedImageBase64;
+    document.getElementById('imagePreviewWrap').classList.remove('hidden');
+    document.getElementById('postCaption').placeholder = 'Add a caption...';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage() {
+  selectedImageBase64 = null;
+  document.getElementById('imagePreview').src = '';
+  document.getElementById('imagePreviewWrap').classList.add('hidden');
+  document.getElementById('postImageInput').value = '';
+  document.getElementById('postCaption').placeholder = 'Your thoughts...';
+}
+
+function submitPost() {
+  const caption = document.getElementById('postCaption').value.trim();
+  if (!caption && !selectedImageBase64) return;
+  const name = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}').name || currentUser;
+  const posts = JSON.parse(localStorage.getItem('gymbuddy_posts') || '[]');
+  const profileImg = localStorage.getItem('profileImg_' + currentUser) || null;
+  posts.unshift({
+    id: Date.now(),
+    username: currentUser,
+    name,
+    caption,
+    image: selectedImageBase64 || null,
+    profileImg,
+    date: new Date().toISOString(),
+    likes: []
+  });
+  localStorage.setItem('gymbuddy_posts', JSON.stringify(posts));
+  document.getElementById('postCaption').value = '';
+  removeImage();
+  renderFeed();
+}
+
+function toggleLike(postId) {
+  const posts = JSON.parse(localStorage.getItem('gymbuddy_posts') || '[]');
+  const post = posts.find(p => p.id === postId);
+  if (!post) return;
+  const idx = post.likes.indexOf(currentUser);
+  if (idx === -1) post.likes.push(currentUser);
+  else post.likes.splice(idx, 1);
+  localStorage.setItem('gymbuddy_posts', JSON.stringify(posts));
+  renderFeed();
+}
+
+function deletePost(postId) {
+  let posts = JSON.parse(localStorage.getItem('gymbuddy_posts') || '[]');
+  posts = posts.filter(p => p.id !== postId);
+  localStorage.setItem('gymbuddy_posts', JSON.stringify(posts));
+  renderFeed();
+}
+
+function renderFeed() {
+  const posts = JSON.parse(localStorage.getItem('gymbuddy_posts') || '[]');
+  const feed = document.getElementById('drawerFeed');
+  const typeLabel = { progress:'📈 Progress', workout:'🏋️ Workout', diet:'🥗 Diet', motivation:'💪 Motivation' };
+
+  if (!posts.length) {
+    feed.innerHTML = '<div class="feedEmpty">No posts yet. Be the first to share! 💪</div>';
+    return;
+  }
+
+  feed.innerHTML = posts.map(p => {
+    const liked = p.likes.includes(currentUser);
+    const isOwner = p.username === currentUser;
+    const timeAgo = getTimeAgo(new Date(p.date));
+    return `
+      <div class="feedCard">
+        <div class="feedCardTop">
+          <div class="feedAvatar" style="${p.profileImg ? `background-image:url(${p.profileImg});background-size:cover;background-position:center;` : ''}">${p.profileImg ? '' : p.name[0].toUpperCase()}</div>
+          <div class="feedMeta">
+            <div class="feedName">${p.name}</div>
+            <div class="feedTime">${timeAgo}</div>
+          </div>
+          ${isOwner ? `<button class="feedDelete" onclick="deletePost(${p.id})">🗑</button>` : ''}
+        </div>
+        ${p.image ? `<img class="feedImage" src="${p.image}" alt="post"/>` : ''}
+        ${p.caption ? `<div class="feedCaption">${p.caption}</div>` : ''}
+        <div class="feedActions">
+          <button class="feedLike ${liked ? 'liked' : ''}" onclick="toggleLike(${p.id})">
+            ${liked ? '❤️' : '🤍'} ${p.likes.length}
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function getTimeAgo(date) {
+  const diff = Math.floor((Date.now() - date) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
 }

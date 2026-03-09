@@ -35,11 +35,14 @@
 
 <!-- APP SCREEN -->
 <div id="appScreen">
-  <!-- SLIM TOP BAR: logo + greeting only -->
   <nav>
     <div class="logo">GymBuddy</div>
     <div class="navRight">
+      <button class="navDrawerBtn" onclick="openDrawer()" title="Community Feed">👥</button>
       <span id="navUser"></span>
+      <button class="navProfileBtn" onclick="showPageFromSheet('aboutPage')" title="My Profile">
+        <div class="navAvatar" id="navAvatarInitial"></div>
+      </button>
     </div>
   </nav>
   <main>
@@ -139,7 +142,6 @@
           </svg>
         </div>
         <div class="muscleLabel" id="muscleLabel">Click a muscle to log workout</div>
-        <!-- HEATMAP LEGEND -->
         <div class="heatmapLegend">
           <span>Less trained</span>
           <div class="legendBar"></div>
@@ -160,9 +162,7 @@
     <div class="page" id="progressPage">
       <div class="progressPage">
         <h2>Progress & Stats</h2>
-        <!-- STREAK + CALENDAR SIDE BY SIDE -->
         <div class="streakCalRow">
-          <!-- Streak compact card -->
           <div class="streakCompact" id="streakCard">
             <div class="streakStat">
               <div class="streakCompactTop">
@@ -180,8 +180,6 @@
               <div class="streakCompactLabel">Best Streak</div>
             </div>
           </div>
-
-          <!-- Calendar -->
           <div class="calendarSection">
             <div class="calendarHeader">
               <button class="calNavBtn" onclick="calPrevMonth()">‹</button>
@@ -196,8 +194,6 @@
             </div>
           </div>
         </div>
-
-        <!-- WEEKLY MUSCLE LOAD -->
         <div class="weeklyLoad">
           <div class="weeklyLoadHeader">
             <button class="calNavBtn" onclick="weekPrev()">‹</button>
@@ -206,41 +202,11 @@
           </div>
           <div class="muscleLoadBars" id="muscleLoadBars"></div>
         </div>
-
         <div class="chartWrap">
           <h3>Volume Over Time</h3>
           <select id="chartExSelect" onchange="renderChart()"></select>
           <canvas id="progressChart"></canvas>
         </div>
-      </div>
-    </div>
-    </div>
-
-    <!-- PR PAGE -->
-    <div class="page" id="prPage">
-      <div class="prPage">
-        <h2>🏆 Personal Records</h2>
-        <p class="prSubtitle">Highest lifted weight grouped by muscle</p>
-        <div id="prByMuscle"></div>
-      </div>
-    </div>
-
-    <!-- LEADERBOARD PAGE -->
-    <div class="page" id="leaderboardPage">
-      <div class="leaderboardPage">
-        <h2>🥇 Leaderboard</h2>
-        <p class="lbSubtitle">Top lifters across all GymBuddy users</p>
-        <div class="lbFilters">
-          <select id="lbMuscle" onchange="renderLeaderboard()">
-            <option value="all">All Muscles</option>
-            <option>Chest</option><option>Shoulders</option><option>Biceps</option>
-            <option>Triceps</option><option>Abs</option><option>Lats</option>
-            <option>Traps</option><option>Lower Back</option><option>Quadriceps</option>
-            <option>Hamstrings</option><option>Glutes</option><option>Calves</option>
-            <option>Forearms</option>
-          </select>
-        </div>
-        <div id="leaderboardList"></div>
       </div>
     </div>
 
@@ -251,58 +217,71 @@
         <div class="aboutCard">
           <div class="avatarWrap">
             <div class="avatar" id="avatarInitial"></div>
+            <input type="file" id="profileImageInput" accept="image/*" class="hidden" onchange="handleProfileImage(event)"/>
+            <button class="avatarEditBtn" onclick="document.getElementById('profileImageInput').click()" title="Change photo">📷</button>
           </div>
-          <div class="aboutForm">
-            <div class="formGroup">
-              <label>Display Name</label>
-              <input type="text" id="aboutName" placeholder="Your name"/>
-            </div>
-            <div class="formGroup">
-              <label>Age</label>
-              <input type="number" id="aboutAge" placeholder="Your age" min="10" max="100"/>
-            </div>
-            <div class="formGroup">
-              <label>Height</label>
-              <div class="heightOptions">
-                <select id="heightUnit" onchange="toggleHeightUnit()">
-                  <option value="cm">cm</option>
-                  <option value="ft">ft/in</option>
-                </select>
-                <div id="heightCm">
-                  <input type="number" id="aboutHeightCm" placeholder="e.g. 175" min="100" max="250"/>
-                  <span>cm</span>
-                </div>
-                <div id="heightFt" class="hidden">
-                  <input type="number" id="aboutHeightFt" placeholder="ft" min="4" max="8"/>
-                  <span>ft</span>
-                  <input type="number" id="aboutHeightIn" placeholder="in" min="0" max="11"/>
-                  <span>in</span>
+
+          <!-- VIEW MODE -->
+          <div id="aboutViewMode" class="hidden">
+            <div class="aboutViewGrid" id="aboutViewGrid"></div>
+            <button class="btn sec aboutEditBtn" onclick="enableAboutEdit()">✏️ Edit Profile</button>
+          </div>
+
+          <!-- EDIT MODE -->
+          <div id="aboutEditMode">
+            <div class="aboutForm">
+              <div class="formGroup">
+                <label>Display Name</label>
+                <input type="text" id="aboutName" placeholder="Your name"/>
+              </div>
+              <div class="formGroup">
+                <label>Age</label>
+                <input type="number" id="aboutAge" placeholder="Your age" min="10" max="100"/>
+              </div>
+              <div class="formGroup">
+                <label>Height</label>
+                <div class="heightOptions">
+                  <select id="heightUnit" onchange="toggleHeightUnit()">
+                    <option value="cm">cm</option>
+                    <option value="ft">ft/in</option>
+                  </select>
+                  <div id="heightCm">
+                    <input type="number" id="aboutHeightCm" placeholder="e.g. 175" min="100" max="250"/>
+                    <span>cm</span>
+                  </div>
+                  <div id="heightFt" class="hidden">
+                    <input type="number" id="aboutHeightFt" placeholder="ft" min="4" max="8"/>
+                    <span>ft</span>
+                    <input type="number" id="aboutHeightIn" placeholder="in" min="0" max="11"/>
+                    <span>in</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="formGroup">
-              <label>Weight</label>
-              <div class="weightOptions">
-                <input type="number" id="aboutWeight" placeholder="e.g. 170" min="50" max="500"/>
-                <select id="weightUnit">
-                  <option value="lbs">lbs</option>
-                  <option value="kg">kg</option>
+              <div class="formGroup">
+                <label>Weight</label>
+                <div class="weightOptions">
+                  <input type="number" id="aboutWeight" placeholder="e.g. 170" min="50" max="500"/>
+                  <select id="weightUnit">
+                    <option value="lbs">lbs</option>
+                    <option value="kg">kg</option>
+                  </select>
+                </div>
+              </div>
+              <div class="formGroup">
+                <label>Fitness Goal</label>
+                <select id="aboutGoal">
+                  <option value="">Select your goal</option>
+                  <option>Build Muscle</option>
+                  <option>Lose Weight</option>
+                  <option>Improve Strength</option>
+                  <option>Improve Endurance</option>
+                  <option>Stay Fit</option>
                 </select>
               </div>
+              <button class="btn" onclick="saveAbout()">Save Profile</button>
             </div>
-            <div class="formGroup">
-              <label>Fitness Goal</label>
-              <select id="aboutGoal">
-                <option value="">Select your goal</option>
-                <option>Build Muscle</option>
-                <option>Lose Weight</option>
-                <option>Improve Strength</option>
-                <option>Improve Endurance</option>
-                <option>Stay Fit</option>
-              </select>
-            </div>
-            <button class="btn" onclick="saveAbout()">Save Profile</button>
           </div>
+
           <div class="aboutStats" id="aboutStats"></div>
         </div>
       </div>
@@ -334,47 +313,16 @@
       </div>
     </div>
 
-    <!-- FEEDBACK PAGE -->
-    <div class="page" id="feedbackPage">
-      <div class="feedbackPage">
-        <h2>💬 Feedback</h2>
-        <p class="feedbackSub">Help us improve GymBuddy — report a bug or suggest a feature!</p>
-        <div class="feedbackCard">
-          <div class="formGroup">
-            <label>Type</label>
-            <select id="feedbackType">
-              <option value="bug">🐛 Bug Report</option>
-              <option value="feature">✨ Feature Request</option>
-              <option value="other">💡 Other</option>
-            </select>
-          </div>
-          <div class="formGroup">
-            <label>Title</label>
-            <input type="text" id="feedbackTitle" placeholder="Short description..."/>
-          </div>
-          <div class="formGroup">
-            <label>Description</label>
-            <textarea id="feedbackDesc" placeholder="Describe the bug or feature in detail..." rows="5"></textarea>
-          </div>
-          <div id="feedbackMsg" class="feedbackMsg hidden"></div>
-          <button class="btn" onclick="submitFeedback()">Submit Feedback</button>
-        </div>
-        <div class="feedbackHistory" id="feedbackHistory"></div>
-      </div>
-    </div>
-
   </main>
 </div>
 
 <!-- WORKOUT MODAL -->
 <div class="modal-overlay hidden" id="modalOverlay">
   <div class="modal">
-    <!-- CHANGE 5: X close button always visible top-right -->
     <button class="modalCloseX" onclick="closeModal()">✕</button>
     <h2 id="modalMuscle"></h2>
     <div class="sub" id="modalDate"></div>
     <div class="exerciseList" id="exerciseList"></div>
-    <!-- Cancel + Save only shown after exercise selected -->
     <div class="modalBtns hidden" id="modalBtns">
       <button class="btn sec" onclick="closeModal()">Cancel</button>
       <button class="btn" id="saveBtn" onclick="saveWorkout()">Save Workout</button>
@@ -390,24 +338,9 @@
   <div class="sheetHandle"></div>
   <div class="sheetTitle">More</div>
   <div class="sheetItems">
-    <button class="sheetItem" onclick="showPageFromSheet('prPage')">
-      <span class="sheetIcon">🏆</span>
-      <span class="sheetLabel">Personal Records</span>
-      <span class="sheetArrow">›</span>
-    </button>
-    <button class="sheetItem" onclick="showPageFromSheet('leaderboardPage')">
-      <span class="sheetIcon">🥇</span>
-      <span class="sheetLabel">Leaderboard</span>
-      <span class="sheetArrow">›</span>
-    </button>
     <button class="sheetItem" onclick="showPageFromSheet('aboutPage')">
       <span class="sheetIcon">👤</span>
       <span class="sheetLabel">About Me</span>
-      <span class="sheetArrow">›</span>
-    </button>
-    <button class="sheetItem" onclick="showPageFromSheet('feedbackPage')">
-      <span class="sheetIcon">💬</span>
-      <span class="sheetLabel">Report Bug / Suggest Feature</span>
       <span class="sheetArrow">›</span>
     </button>
     <div class="sheetDivider"></div>
@@ -418,7 +351,8 @@
     </button>
   </div>
 </div>
-<!-- BOTTOM NAV (minimal - 5 items) -->
+
+<!-- BOTTOM NAV -->
 <div class="bottomNav" id="bottomNav" style="display:none">
   <button class="bnBtn active" onclick="showPage('bodyPage',this)" id="bn_body">
     <span class="bnIcon">🏋️</span>Body
@@ -435,6 +369,37 @@
   <button class="bnBtn" onclick="openMoreSheet()" id="bn_more">
     <span class="bnIcon">☰</span>More
   </button>
+</div>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawerOverlay hidden" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+<!-- LEFT DRAWER — COMMUNITY FEED -->
+<div class="drawer hidden" id="drawer">
+  <div class="drawerHeader">
+    <div class="drawerTitle">👥 Community Feed</div>
+    <button class="drawerClose" onclick="closeDrawer()">✕</button>
+  </div>
+
+  <!-- POST COMPOSER -->
+  <div class="drawerComposer">
+    <input type="file" id="postImageInput" accept="image/*" class="hidden" onchange="handleImageSelect(event)"/>
+    <div class="composerRow">
+      <div class="composerAvatar" id="composerAvatar"></div>
+      <input type="text" id="postCaption" placeholder="Your thoughts..."/>
+      <button class="cameraBtn" onclick="document.getElementById('postImageInput').click()">📷</button>
+      <button class="composerPost" onclick="submitPost()">Post</button>
+    </div>
+    <div id="imagePreviewWrap" class="hidden">
+      <img id="imagePreview" src="" alt="preview"/>
+      <button class="removeImgBtn" onclick="removeImage()">✕</button>
+    </div>
+  </div>
+
+  <!-- FEED -->
+  <div class="drawerFeed" id="drawerFeed">
+    <div class="feedEmpty">No posts yet. Be the first to share! 💪</div>
+  </div>
 </div>
 
 <script src="script.js"></script>

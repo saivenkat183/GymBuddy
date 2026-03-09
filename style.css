@@ -227,7 +227,7 @@ canvas{max-height:260px}
 .lbWeight{font-size:1.3rem;font-weight:700;color:var(--gold);font-family:'Bebas Neue',sans-serif;letter-spacing:1px}
 
 /* ─── ABOUT PAGE ───────────────────────────────────────────── */
-.aboutCard{background:var(--bg3);border-radius:4px;padding:28px;max-width:600px;border:1px solid var(--border)}
+.aboutCard{background:var(--bg3);border-radius:4px;padding:28px;max-width:600px;width:100%;border:1px solid var(--border)}
 .avatarWrap{display:flex;justify-content:center;margin-bottom:28px}
 .avatar{width:88px;height:88px;border-radius:50%;background:var(--goldGrad);display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:700;color:#000;font-family:'Bebas Neue',sans-serif;box-shadow:var(--goldGlow)}
 .aboutForm{display:flex;flex-direction:column;gap:16px}
@@ -359,3 +359,307 @@ main { padding-bottom: 90px !important; }
 #prPage.active { display:block; padding:0 !important; margin:0 !important; }
 #prPage .prPage { padding:0 !important; margin:0 !important; }
 #prPage .prPage h2 { margin-top:0 !important; padding-top:0 !important; }
+
+/* ─── NAV PROFILE BUTTON ───────────────────────────────────── */
+.navProfileBtn{
+  background:none;border:none;cursor:pointer;padding:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.navAvatar{
+  width:32px;height:32px;
+  border-radius:50%;
+  background:var(--goldGrad);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;font-weight:700;color:#000;
+  font-family:'Bebas Neue',sans-serif;
+  box-shadow:var(--goldGlow);
+  border:2px solid var(--gold3);
+  transition:.2s;
+  letter-spacing:0;
+}
+.navProfileBtn:hover .navAvatar{
+  box-shadow:0 0 14px rgba(201,168,76,0.6);
+  transform:scale(1.08);
+}
+
+/* ─── ABOUT VIEW MODE ──────────────────────────────────────── */
+.aboutViewGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:16px;
+}
+.aboutViewItem{
+  background:var(--bg4);
+  border-radius:6px;
+  padding:12px 14px;
+  border:1px solid var(--border);
+}
+.aboutViewLabel{
+  font-size:.66rem;
+  color:var(--text4);
+  text-transform:uppercase;
+  letter-spacing:1px;
+  margin-bottom:4px;
+}
+.aboutViewValue{
+  font-size:.95rem;
+  color:var(--text);
+  font-weight:600;
+  letter-spacing:.3px;
+}
+.aboutEditBtn{
+  width:100%;
+  margin-top:4px;
+  padding:10px;
+  font-size:.8rem;
+}
+
+/* ─── ABOUT STATS GRID ─────────────────────────────────────── */
+.aboutStatsGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:20px;
+}
+.aboutStatCard{
+  background:var(--bg4);
+  border-radius:10px;
+  padding:16px 12px;
+  text-align:center;
+  border:1px solid var(--border2);
+  transition:.2s;
+  position:relative;
+  overflow:hidden;
+}
+.aboutStatCard::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:2px;
+  background:var(--goldGrad);
+}
+.aboutStatCard:hover{
+  border-color:var(--gold3);
+  box-shadow:var(--goldGlow);
+  transform:translateY(-2px);
+}
+.aboutStatIcon{
+  font-size:1.4rem;
+  margin-bottom:6px;
+}
+.aboutStatVal{
+  font-size:1.8rem;
+  font-weight:900;
+  font-family:'Bebas Neue',sans-serif;
+  color:var(--gold2);
+  letter-spacing:1px;
+  line-height:1;
+  margin-bottom:4px;
+}
+.aboutStatLabel{
+  font-size:.62rem;
+  color:var(--text4);
+  text-transform:uppercase;
+  letter-spacing:1.5px;
+  font-weight:600;
+}
+
+/* ─── ABOUT STATS ROW (single line) ───────────────────────── */
+.aboutStatsRow{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin-top:20px;
+  width:100%;
+}
+.aboutStatsRow .aboutStatCard{
+  flex:1;
+  padding:14px 4px;
+  min-width:0;
+}
+.aboutStatsRow .aboutStatVal{
+  font-size:1.6rem;
+}
+.aboutStatsRow .aboutStatLabel{
+  font-size:.62rem;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* ─── NAV DRAWER BUTTON ────────────────────────────────────── */
+.navDrawerBtn{
+  background:none;border:1px solid var(--border3);
+  color:var(--text3);width:32px;height:32px;
+  border-radius:50%;cursor:pointer;font-size:.95rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:.2s;
+}
+.navDrawerBtn:hover{border-color:var(--gold);color:var(--gold);box-shadow:var(--goldGlow)}
+
+/* ─── DRAWER OVERLAY ───────────────────────────────────────── */
+.drawerOverlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.6);
+  z-index:80;
+  backdrop-filter:blur(2px);
+}
+
+/* ─── DRAWER PANEL ─────────────────────────────────────────── */
+.drawer{
+  position:fixed;top:0;left:0;bottom:0;
+  width:88vw;max-width:360px;
+  background:var(--bg2);
+  z-index:90;
+  display:flex;flex-direction:column;
+  border-right:1px solid var(--border2);
+  transform:translateX(-110%);
+  transition:transform .38s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:4px 0 40px rgba(0,0,0,.8);
+}
+.drawer.open{
+  transform:translateX(0);
+}
+
+/* ─── DRAWER HEADER ────────────────────────────────────────── */
+.drawerHeader{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 16px 12px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.drawerTitle{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.3rem;letter-spacing:3px;color:var(--gold2);
+}
+.drawerClose{
+  background:var(--bg4);border:1px solid var(--border3);
+  color:var(--text3);width:28px;height:28px;
+  border-radius:50%;cursor:pointer;font-size:.8rem;
+  display:flex;align-items:center;justify-content:center;transition:.2s;
+}
+.drawerClose:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ─── POST COMPOSER ────────────────────────────────────────── */
+.drawerComposer{
+  padding:10px 12px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg3);
+  flex-shrink:0;
+}
+.composerRow{
+  display:flex;align-items:center;gap:6px;
+  width:100%;overflow:hidden;
+}
+.composerRow input[type="text"]{
+  flex:1;min-width:0;background:var(--bg4);border:1px solid var(--border2);
+  border-radius:20px;padding:8px 12px;color:var(--text);
+  font-family:'Inter',sans-serif;font-size:.82rem;transition:.2s;
+}
+.composerRow input[type="text"]:focus{outline:none;border-color:var(--gold)}
+.composerRow input[type="text"]::placeholder{color:var(--text5)}
+.cameraBtn{
+  background:var(--bg4);border:1px solid var(--border2);
+  width:32px;height:32px;min-width:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:.9rem;transition:.2s;flex-shrink:0;
+}
+.cameraBtn:hover{border-color:var(--gold);box-shadow:var(--goldGlow)}
+.composerPost{
+  background:var(--goldGrad);color:#000;border:none;
+  padding:7px 12px;border-radius:20px;font-weight:700;
+  cursor:pointer;font-size:.72rem;letter-spacing:1px;
+  text-transform:uppercase;font-family:'Inter',sans-serif;
+  transition:.2s;white-space:nowrap;flex-shrink:0;
+}
+.composerPost:hover{box-shadow:var(--goldGlow)}
+#imagePreviewWrap{
+  position:relative;margin-top:8px;border-radius:8px;overflow:hidden;
+  border:1px solid var(--border2);
+}
+#imagePreview{
+  width:100%;max-height:160px;object-fit:cover;display:block;border-radius:8px;
+}
+.removeImgBtn{
+  position:absolute;top:6px;right:6px;
+  background:rgba(0,0,0,.7);border:none;color:#fff;
+  width:24px;height:24px;border-radius:50%;cursor:pointer;
+  font-size:.75rem;display:flex;align-items:center;justify-content:center;
+}
+.feedImage{
+  width:100%;border-radius:8px;object-fit:cover;
+  max-height:200px;display:block;margin-bottom:8px;
+  border:1px solid var(--border);
+}
+
+/* ─── FEED ─────────────────────────────────────────────────── */
+.drawerFeed{
+  flex:1;overflow-y:auto;
+  padding:10px 12px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.feedEmpty{
+  text-align:center;color:var(--text5);
+  font-size:.8rem;letter-spacing:1px;
+  padding:40px 20px;text-transform:uppercase;
+}
+.feedCard{
+  background:var(--bg3);border-radius:10px;
+  padding:12px 14px;border:1px solid var(--border);
+  transition:.2s;
+}
+.feedCard:hover{border-color:var(--border2)}
+.feedCardTop{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.feedAvatar{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--goldGrad);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;font-weight:700;color:#000;
+  font-family:'Bebas Neue',sans-serif;flex-shrink:0;
+}
+.feedMeta{flex:1}
+.feedName{font-size:.82rem;font-weight:600;color:var(--text);letter-spacing:.3px}
+.feedTime{font-size:.68rem;color:var(--text4);margin-top:1px}
+.feedTag{color:var(--gold3);font-weight:600}
+.feedDelete{
+  background:none;border:none;color:var(--text5);
+  cursor:pointer;font-size:.85rem;padding:4px;transition:.15s;
+}
+.feedDelete:hover{color:#e74c3c}
+.feedCaption{
+  font-size:.84rem;color:var(--text2);
+  line-height:1.5;margin-bottom:10px;
+}
+.feedActions{display:flex;align-items:center;gap:8px}
+.feedLike{
+  background:none;border:1px solid var(--border2);
+  color:var(--text4);padding:5px 12px;border-radius:20px;
+  cursor:pointer;font-size:.75rem;transition:.2s;
+  display:flex;align-items:center;gap:4px;
+}
+.feedLike:hover{border-color:var(--gold3);color:var(--text2)}
+.feedLike.liked{border-color:#e74c3c;color:#e74c3c;background:rgba(231,76,60,0.08)}
+
+/* ─── AVATAR EDIT BUTTON ───────────────────────────────────── */
+.avatarWrap{
+  position:relative;
+  display:inline-block;
+  margin-bottom:16px;
+}
+.avatarEditBtn{
+  position:absolute;
+  bottom:0;right:0;
+  width:26px;height:26px;
+  background:var(--goldGrad);
+  border:2px solid var(--bg3);
+  border-radius:50%;
+  cursor:pointer;
+  font-size:.7rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:.2s;
+}
+.avatarEditBtn:hover{
+  box-shadow:var(--goldGlow);
+  transform:scale(1.1);
+}
