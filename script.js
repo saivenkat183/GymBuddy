@@ -1,5 +1,5 @@
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const API = 'http://localhost:5000/api';
+const API = 'https://gymbuddy-backend-wsn1.onrender.com/api';
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const EXERCISES = {
@@ -266,20 +266,17 @@ function logRestDay() {
 function getStreak() {
   if (!allSessions.length && !getRestDays().length) return 0;
   const restDays = getRestDays();
+  const freezeDays = getFreezeDays();
   const brokenDate = localStorage.getItem('streakBroken_' + currentUser);
   const workoutDays = [...new Set(allSessions.map(s => new Date(s.date).toLocaleDateString('en-CA')))];
 
-  // Only count days after the last streak break
   const filterFrom = brokenDate ? new Date(brokenDate + 'T12:00:00') : null;
 
-  const validWorkouts = filterFrom
-    ? workoutDays.filter(d => new Date(d + 'T12:00:00') > filterFrom)
-    : workoutDays;
-  const validRest = filterFrom
-    ? restDays.filter(d => new Date(d + 'T12:00:00') > filterFrom)
-    : restDays;
+  const validWorkouts = filterFrom ? workoutDays.filter(d => new Date(d + 'T12:00:00') > filterFrom) : workoutDays;
+  const validRest = filterFrom ? restDays.filter(d => new Date(d + 'T12:00:00') > filterFrom) : restDays;
+  const validFreeze = filterFrom ? freezeDays.filter(d => new Date(d + 'T12:00:00') > filterFrom) : freezeDays;
 
-  const allDays = [...new Set([...validWorkouts, ...validRest])].sort((a, b) => new Date(b) - new Date(a));
+  const allDays = [...new Set([...validWorkouts, ...validRest, ...validFreeze])].sort((a, b) => new Date(b) - new Date(a));
   if (!allDays.length) return 0;
 
   let streak = 0;
@@ -380,11 +377,23 @@ function removeSet(i, exId) { currentSets.splice(i, 1); renderSets(exId); }
 async function saveWorkout() {
   const validSets = currentSets.filter(s => s.weight !== '' && s.reps !== '');
   if (!validSets.length) { alert('Please enter at least one complete set'); return; }
+
+  const datePicker = document.getElementById('modalDatePicker').value;
+  let workoutDate = new Date();
+  if (datePicker === 'yesterday') {
+    workoutDate.setDate(workoutDate.getDate() - 1);
+  }
+
   try {
     const res = await fetch(API + '/workouts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ muscle: currentMuscle, exercise: currentExercise, sets: validSets })
+      body: JSON.stringify({
+        muscle: currentMuscle,
+        exercise: currentExercise,
+        sets: validSets,
+        date: workoutDate.toISOString()
+      })
     });
     const data = await res.json();
     allSessions.push(data.session);
@@ -422,25 +431,104 @@ function checkPR(session) {
 }
 
 // ─── HISTORY ──────────────────────────────────────────────────────────────────
+let histCalYear, histCalMonth;
+
 function renderHistory() {
-  const sessions = [...allSessions].reverse();
-  const el = document.getElementById('historyList');
-  if (!sessions.length) {
-    el.innerHTML = '<div class="emptyState">No workouts logged yet. Hit the Body Map to start!</div>';
-    return;
+  const now = new Date();
+  if (!histCalYear) { histCalYear = now.getFullYear(); histCalMonth = now.getMonth(); }
+  renderHistoryCalendar();
+  document.getElementById('historyDayDetail').innerHTML = '<div class="histSelectDay">Select a day to view workouts</div>';
+}
+
+function histCalPrev() { histCalMonth--; if (histCalMonth < 0) { histCalMonth = 11; histCalYear--; } renderHistoryCalendar(); }
+function histCalNext() { histCalMonth++; if (histCalMonth > 11) { histCalMonth = 0; histCalYear++; } renderHistoryCalendar(); }
+
+function renderHistoryCalendar() {
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  document.getElementById('histCalMonthLabel').textContent = `${MONTHS[histCalMonth]} ${histCalYear}`;
+
+  // Build workout map with set counts for dot intensity
+  const workoutMap = {};
+  allSessions.forEach(s => {
+    const key = new Date(s.date).toLocaleDateString('en-CA');
+    if (!workoutMap[key]) workoutMap[key] = { sessions: [], sets: 0 };
+    workoutMap[key].sessions.push(s);
+    workoutMap[key].sets += s.sets.length;
+  });
+
+  const grid = document.getElementById('histCalGrid');
+  grid.innerHTML = '';
+
+  DAYS.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'calDayName';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(histCalYear, histCalMonth, 1).getDay();
+  const daysInMonth = new Date(histCalYear, histCalMonth + 1, 0).getDate();
+  const today = new Date().toLocaleDateString('en-CA');
+
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'calDay empty';
+    grid.appendChild(el);
   }
-  el.innerHTML = sessions.map(s => `
-    <div class="sessionCard" id="session_${s._id}">
-      <div class="sDateRow">
-        <div class="sDate">${new Date(s.date).toLocaleString()}</div>
-        <button class="deleteBtn" onclick="deleteSession('${s._id}')">🗑 Delete</button>
-      </div>
-      <div class="sTitle">${s.muscle} — ${s.exercise}</div>
-      <div class="setLog"><table>
-        <tr><th>Set</th><th>Weight (lbs)</th><th>Reps</th><th>Volume</th></tr>
-        ${s.sets.map((set, i) => `<tr><td>${i + 1}</td><td>${set.weight} lbs</td><td>${set.reps}</td><td>${(parseFloat(set.weight || 0) * parseInt(set.reps || 0)).toFixed(0)}</td></tr>`).join('')}
-      </table></div>
-    </div>`).join('');
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateKey = `${histCalYear}-${String(histCalMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const el = document.createElement('div');
+    el.className = 'calDay histCalDay';
+    if (dateKey === today) el.classList.add('today');
+
+    const dayNum = document.createElement('span');
+    dayNum.textContent = d;
+    el.appendChild(dayNum);
+
+    if (workoutMap[dateKey]) {
+      const sets = workoutMap[dateKey].sets;
+      // dot intensity based on sets
+      const intensity = sets >= 15 ? 'high' : sets >= 8 ? 'med' : 'low';
+      const dot = document.createElement('div');
+      dot.className = `histDot ${intensity}`;
+      el.appendChild(dot);
+      el.classList.add('hasWorkout');
+      el.onclick = () => showHistoryDay(dateKey, workoutMap[dateKey].sessions);
+    }
+
+    grid.appendChild(el);
+  }
+}
+
+function showHistoryDay(dateKey, sessions) {
+  // Highlight selected day
+  document.querySelectorAll('.histCalDay').forEach(el => el.classList.remove('selectedDay'));
+  const d = new Date(dateKey + 'T12:00:00');
+  const dayNum = d.getDate();
+  const firstDay = new Date(histCalYear, histCalMonth, 1).getDay();
+  const allDays = document.querySelectorAll('.histCalDay');
+  if (allDays[dayNum - 1]) allDays[dayNum - 1].classList.add('selectedDay');
+
+  const detail = document.getElementById('historyDayDetail');
+  const dateLabel = d.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  detail.innerHTML = `
+    <div class="histDayHeader">${dateLabel}</div>
+    ${sessions.map(s => `
+      <div class="sessionCard" id="session_${s._id}">
+        <div class="sDateRow">
+          <div class="sDate">${new Date(s.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+          <button class="deleteBtn" onclick="deleteSession('${s._id}')">🗑 Delete</button>
+        </div>
+        <div class="sTitle">${s.muscle} — ${s.exercise}</div>
+        <div class="setLog"><table>
+          <tr><th>Set</th><th>Weight (lbs)</th><th>Reps</th><th>Volume</th></tr>
+          ${s.sets.map((set, i) => `<tr><td>${i+1}</td><td>${set.weight} lbs</td><td>${set.reps}</td><td>${(parseFloat(set.weight||0)*parseInt(set.reps||0)).toFixed(0)}</td></tr>`).join('')}
+        </table></div>
+      </div>`).join('')}`;
 }
 
 // ─── DELETE SESSION ───────────────────────────────────────────────────────────
@@ -455,7 +543,8 @@ async function deleteSession(sessionId) {
     allSessions = allSessions.filter(s => s._id !== sessionId);
     updateHeatmap();
     updateStreak();
-    renderHistory();
+    renderHistoryCalendar();
+    document.getElementById('historyDayDetail').innerHTML = '<div class="histSelectDay">Select a day to view workouts</div>';
   } catch (err) {
     alert('Could not delete. Is the server running?');
   }
@@ -693,6 +782,63 @@ async function renderLeaderboard() {
     </div>`;
 }
 
+// ─── STREAK FREEZE ────────────────────────────────────────────────────────────
+function getFreezeDays() {
+  return JSON.parse(localStorage.getItem('freezeDays_' + currentUser) || '[]');
+}
+
+function getFreezeTokens() {
+  const used = getFreezeDays().length;
+  return Math.max(0, 2 - used);
+}
+
+function useFreeze() {
+  const today = new Date().toLocaleDateString('en-CA');
+  const freezeDays = getFreezeDays();
+  const tokens = getFreezeTokens();
+
+  if (tokens <= 0) {
+    alert('❄️ You have no freeze tokens left!');
+    return;
+  }
+
+  if (freezeDays.includes(today)) {
+    alert('You already used a freeze today!');
+    return;
+  }
+
+  // Check if worked out or rest day today
+  const workedOut = allSessions.some(s => new Date(s.date).toLocaleDateString('en-CA') === today);
+  const isRestDay = getRestDays().includes(today);
+  if (workedOut || isRestDay) {
+    alert('You already logged activity today — no need to freeze!');
+    return;
+  }
+
+  // No 2 consecutive freezes
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = yesterday.toLocaleDateString('en-CA');
+  if (freezeDays.includes(yesterdayKey)) {
+    alert('❄️ You can\'t use freeze 2 days in a row! Log a workout or rest day first.');
+    return;
+  }
+
+  freezeDays.push(today);
+  localStorage.setItem('freezeDays_' + currentUser, JSON.stringify(freezeDays));
+  updateStreak();
+  updateFreezeDisplay();
+  alert(`❄️ Streak frozen! You have ${tokens - 1} freeze token${tokens - 1 !== 1 ? 's' : ''} left.`);
+}
+
+function updateFreezeDisplay() {
+  const el = document.getElementById('freezeTokenDisplay');
+  if (!el) return;
+  const tokens = getFreezeTokens();
+  const icons = '❄️'.repeat(tokens);
+  el.innerHTML = `<div class="freezeDisplay"><span class="freezeLabel">Streak Freeze Tokens</span><span class="freezeIcons">${icons}</span><span class="freezeCount">${tokens} / 2 remaining</span></div>`;
+}
+
 // ─── PROFILE IMAGE ────────────────────────────────────────────────────────────
 function handleProfileImage(event) {
   const file = event.target.files[0];
@@ -751,10 +897,10 @@ function loadAbout() {
   loadProfileImage();
 
   if (hasData) {
-    // Show view mode
     document.getElementById('aboutViewMode').classList.remove('hidden');
     document.getElementById('aboutEditMode').classList.add('hidden');
     renderAboutView(data);
+    updateFreezeDisplay();
   } else {
     // First time — show edit mode
     document.getElementById('aboutViewMode').classList.add('hidden');

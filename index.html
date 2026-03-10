@@ -148,6 +148,7 @@
           <span>More trained</span>
         </div>
         <button class="restDayBtn" onclick="logRestDay()">😴 Log Rest Day</button>
+        <button class="freezeBtn" onclick="useFreeze()">❄️ Use Streak Freeze</button>
       </div>
     </div>
 
@@ -155,7 +156,20 @@
     <div class="page" id="historyPage">
       <div class="historyPage">
         <h2>Workout History</h2>
-        <div id="historyList"></div>
+        <div class="calendarSection">
+          <div class="calendarHeader">
+            <button class="calNavBtn" onclick="histCalPrev()">‹</button>
+            <span class="calMonthLabel" id="histCalMonthLabel"></span>
+            <button class="calNavBtn" onclick="histCalNext()">›</button>
+          </div>
+          <div class="calGrid" id="histCalGrid"></div>
+          <div class="histLegend">
+            <span class="histDot low"></span><span>1–7 sets</span>
+            <span class="histDot med"></span><span>8–14 sets</span>
+            <span class="histDot high"></span><span>15+ sets</span>
+          </div>
+        </div>
+        <div id="historyDayDetail"></div>
       </div>
     </div>
 
@@ -244,6 +258,7 @@
           <!-- VIEW MODE -->
           <div id="aboutViewMode" class="hidden">
             <div class="aboutViewGrid" id="aboutViewGrid"></div>
+            <div class="freezeTokenDisplay" id="freezeTokenDisplay"></div>
             <button class="btn sec aboutEditBtn" onclick="enableAboutEdit()">✏️ Edit Profile</button>
           </div>
 
@@ -341,7 +356,13 @@
   <div class="modal">
     <button class="modalCloseX" onclick="closeModal()">✕</button>
     <h2 id="modalMuscle"></h2>
-    <div class="sub" id="modalDate"></div>
+    <div class="modalDateRow">
+      <div class="sub" id="modalDate"></div>
+      <select id="modalDatePicker" class="modalDatePicker">
+        <option value="today">Today</option>
+        <option value="yesterday">Yesterday</option>
+      </select>
+    </div>
     <div class="exerciseList" id="exerciseList"></div>
     <div class="modalBtns hidden" id="modalBtns">
       <button class="btn sec" onclick="closeModal()">Cancel</button>
