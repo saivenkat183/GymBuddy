@@ -887,3 +887,41 @@ main { padding-bottom: 90px !important; }
   font-size:1.1rem; letter-spacing:2px;
   color:var(--gold2); margin:16px 0 10px;
 }
+
+/* ─── PR CELEBRATION ───────────────────────────────────────── */
+.prCelebration{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(0.5);
+  z-index:999;opacity:0;
+  transition:all .35s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+}
+.prCelebration.show{
+  opacity:1;transform:translate(-50%,-50%) scale(1);
+}
+.prCelebInner{
+  background:linear-gradient(135deg,#1a1a00,#2a2000);
+  border:2px solid var(--gold);
+  border-radius:16px;
+  padding:28px 40px;
+  text-align:center;
+  box-shadow:0 0 40px rgba(255,215,0,0.4);
+}
+.prCelebIcon{ font-size:2.5rem; margin-bottom:8px; }
+.prCelebTitle{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:2rem;letter-spacing:6px;
+  color:var(--gold);margin-bottom:4px;
+}
+.prCelebExercise{
+  font-size:.8rem;color:var(--text3);
+  text-transform:uppercase;letter-spacing:2px;
+  margin-bottom:10px;
+}
+.prCelebWeight{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:3rem;color:#fff;letter-spacing:2px;line-height:1;
+}
+.prCelebWeight span{
+  font-size:1.2rem;color:var(--gold3);margin-left:4px;
+}

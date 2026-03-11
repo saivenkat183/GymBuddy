@@ -410,24 +410,51 @@ function getPR(ex) {
   if (!sessions.length) return null;
   let best = null;
   sessions.forEach(s => s.sets.forEach(set => {
-    const v = parseFloat(set.weight) * parseInt(set.reps);
-    if (!best || v > best.val) best = { val: v, weight: set.weight, reps: set.reps };
+    const w = parseFloat(set.weight || 0);
+    if (!best || w > best.weight) best = { weight: w, reps: parseInt(set.reps) };
   }));
   return best;
 }
 
 function checkPR(session) {
   const allPrev = allSessions.filter(s => s.exercise === session.exercise && s._id !== session._id);
+
+  // Find previous best weight
   let prevBest = 0;
-  allPrev.forEach(s => s.sets.forEach(set => { prevBest = Math.max(prevBest, parseFloat(set.weight || 0) * parseInt(set.reps || 0)); }));
+  allPrev.forEach(s => s.sets.forEach(set => {
+    prevBest = Math.max(prevBest, parseFloat(set.weight || 0));
+  }));
+
+  // Find new best weight in this session
   let newBest = 0;
-  session.sets.forEach(s => { newBest = Math.max(newBest, parseFloat(s.weight || 0) * parseInt(s.reps || 0)); });
+  session.sets.forEach(s => {
+    newBest = Math.max(newBest, parseFloat(s.weight || 0));
+  });
+
   if (newBest > prevBest && prevBest > 0) {
     setTimeout(() => {
       launchConfetti();
-      alert(`🏆 New PR on ${session.exercise}! ${newBest.toFixed(0)} lbs·reps`);
+      showPRCelebration(session.exercise, newBest);
     }, 200);
   }
+}
+
+function showPRCelebration(exercise, weight) {
+  const el = document.createElement('div');
+  el.className = 'prCelebration';
+  el.innerHTML = `
+    <div class="prCelebInner">
+      <div class="prCelebIcon">🏆</div>
+      <div class="prCelebTitle">NEW PR!</div>
+      <div class="prCelebExercise">${exercise}</div>
+      <div class="prCelebWeight">${weight} <span>lbs</span></div>
+    </div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add('show'), 50);
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 400);
+  }, 3000);
 }
 
 // ─── HISTORY ──────────────────────────────────────────────────────────────────
