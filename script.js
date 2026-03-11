@@ -335,7 +335,7 @@ function openMuscle(muscle) {
     logDiv.className = 'inlineLog hidden';
     logDiv.id = `log_${ex.replace(/\s+/g, '_')}`;
     logDiv.innerHTML = `<h4>${ex}</h4><div id="sets_${ex.replace(/\s+/g, '_')}"></div><button class="addSetBtn" onclick="addSet('${ex.replace(/\s+/g, '_')}')">+ Add Set</button>`;
-    d.onclick = () => selectExercise(ex, d, logDiv);
+    d.onclick = (e) => { e.stopPropagation(); selectExercise(ex, d, logDiv); }
     wrapper.appendChild(d);
     wrapper.appendChild(logDiv);
     list.appendChild(wrapper);
@@ -533,7 +533,15 @@ function showHistoryDay(dateKey, sessions) {
 
 // ─── DELETE SESSION ───────────────────────────────────────────────────────────
 async function deleteSession(sessionId) {
-  if (!confirm('Delete this workout? This cannot be undone.')) return;
+  const btn = document.querySelector(`#session_${sessionId} .deleteBtn`);
+  if (btn) {
+    if (btn.dataset.confirm !== 'yes') {
+      btn.textContent = '⚠️ Tap again to confirm';
+      btn.dataset.confirm = 'yes';
+      setTimeout(() => { if (btn) { btn.textContent = '🗑 Delete'; btn.dataset.confirm = ''; } }, 3000);
+      return;
+    }
+  }
   try {
     const res = await fetch(API + '/workouts/' + sessionId, {
       method: 'DELETE',
