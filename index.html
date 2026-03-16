@@ -260,6 +260,7 @@
             <div class="aboutViewGrid" id="aboutViewGrid"></div>
             <div class="freezeTokenDisplay" id="freezeTokenDisplay"></div>
             <button class="btn sec aboutEditBtn" onclick="enableAboutEdit()">✏️ Edit Profile</button>
+            <button class="btn sec aboutEditBtn exportBtn" onclick="exportCSV()" style="margin-top:8px">📥 Export Workout Data (CSV)</button>
           </div>
 
           <!-- EDIT MODE -->
@@ -317,6 +318,7 @@
             </div>
           </div>
 
+          <!-- STATS (always visible) -->
           <div class="aboutStats" id="aboutStats"></div>
         </div>
       </div>
@@ -345,6 +347,35 @@
             <button onclick="askQuick('Give me a full week workout plan for muscle gain')">Workout plan</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- FEEDBACK PAGE -->
+    <div class="page" id="feedbackPage">
+      <div class="feedbackPage">
+        <h2>💬 Feedback</h2>
+        <p class="feedbackSub">Help us improve GymBuddy</p>
+        <div class="feedbackCard">
+          <div class="formGroup">
+            <label>Type</label>
+            <select id="feedbackType">
+              <option value="bug">🐛 Bug Report</option>
+              <option value="feature">✨ Feature Request</option>
+              <option value="other">💡 Other</option>
+            </select>
+          </div>
+          <div class="formGroup">
+            <label>Title</label>
+            <input type="text" id="feedbackTitle" placeholder="Short summary..."/>
+          </div>
+          <div class="formGroup">
+            <label>Description</label>
+            <textarea id="feedbackDesc" rows="4" placeholder="Tell us more..."></textarea>
+          </div>
+          <div id="feedbackMsg" class="feedbackMsg hidden"></div>
+          <button class="btn" onclick="submitFeedback()">Submit Feedback</button>
+        </div>
+        <div id="feedbackHistory" class="feedbackHistory"></div>
       </div>
     </div>
 
@@ -388,6 +419,12 @@
     <button class="sheetItem" onclick="showPageFromSheet('prPage')">
       <span class="sheetIcon">🏆</span>
       <span class="sheetLabel">Personal Records</span>
+      <span class="sheetArrow">›</span>
+    </button>
+    <div class="sheetDivider"></div>
+    <button class="sheetItem" onclick="showPageFromSheet('feedbackPage')">
+      <span class="sheetIcon">💬</span>
+      <span class="sheetLabel">Feedback</span>
       <span class="sheetArrow">›</span>
     </button>
     <div class="sheetDivider"></div>

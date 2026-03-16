@@ -51,7 +51,6 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#000;color:#fff}
 /* ─── APP ──────────────────────────────────────────────────── */
 #appScreen{display:none;flex-direction:column;min-height:100vh}
 
-/* Slim top bar — logo + greeting + theme toggle only */
 nav{background:var(--bg2);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
 nav .logo{color:var(--gold2);font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:4px}
 nav .navRight{display:flex;align-items:center;gap:10px}
@@ -108,26 +107,21 @@ main{flex:1;padding:8px 16px 90px;max-width:1200px;margin:0 auto;width:100%;over
 .modal{background:var(--bg3);border-radius:4px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:28px;border:1px solid var(--border2);box-shadow:var(--goldGlow);position:relative;box-sizing:border-box}
 .modal h2{color:var(--gold2);margin-bottom:4px;font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px}
 .modal .sub{color:var(--text3);font-size:.8rem;margin-bottom:20px;letter-spacing:1px;text-transform:uppercase}
-
-/* ─── MODAL X CLOSE BUTTON (always visible) ────────────────── */
 .modalCloseX{position:absolute;top:14px;right:14px;background:var(--bg4);border:1px solid var(--border3);color:var(--text3);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:.2s;line-height:1;z-index:10}
 .modalCloseX:hover{border-color:var(--gold);color:var(--gold);background:var(--bg5)}
-
 .exerciseList{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
 .exCard{background:var(--bg4);border-radius:2px;padding:14px 16px;cursor:pointer;border:1px solid var(--border2);transition:.2s}
 .exCard:hover{border-color:var(--gold3);background:var(--bg4)}
 .exCard.selected{border-color:var(--gold);background:#1a1500;box-shadow:0 0 10px rgba(201,168,76,0.2)}
 .exCard h4{margin-bottom:4px;color:var(--text);font-size:.9rem;letter-spacing:.5px}
 .exCard p{color:var(--text4);font-size:.78rem;text-transform:uppercase;letter-spacing:1px}
-.inlineLog{background:var(--bg5);border-radius:2px;padding:14px;margin-top:8px;border-left:2px solid var(--gold);overflow:hidden;box-sizing:border-box}
+.inlineLog{background:var(--bg5);border-radius:2px;padding:14px;margin-top:8px;border-left:2px solid var(--gold);overflow:hidden;box-sizing:border-box;position:relative;z-index:5}
 .inlineLog h4{color:var(--gold);margin-bottom:12px;font-size:.85rem;letter-spacing:2px;text-transform:uppercase}
 .setRow{display:flex;gap:6px;align-items:center;margin-bottom:8px;width:100%;box-sizing:border-box}
 .setRow label{color:var(--text4);font-size:.78rem;width:38px;min-width:38px;flex-shrink:0;text-transform:uppercase;letter-spacing:1px}
 .setRow input{flex:1;min-width:0;padding:9px 8px;border-radius:2px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);font-size:.9rem;font-family:'Inter',sans-serif;box-sizing:border-box;touch-action:manipulation;-webkit-user-select:text;user-select:text}
 .setRow input:focus{outline:none;border-color:var(--gold);background:#0d0d00;position:relative;z-index:10}
 .setRow input::placeholder{color:var(--text5)}
-.inlineLog{background:var(--bg5);border-radius:2px;padding:14px;margin-top:8px;border-left:2px solid var(--gold);overflow:hidden;box-sizing:border-box;position:relative;z-index:5}
-.exCard{padding:14px 16px;gap:8px;cursor:pointer;touch-action:manipulation}
 .addSetBtn{background:none;border:1px dashed var(--border3);color:var(--text4);padding:9px;border-radius:2px;cursor:pointer;width:100%;margin-top:6px;transition:.2s;font-size:.78rem;letter-spacing:2px;text-transform:uppercase;font-family:'Inter',sans-serif}
 .addSetBtn:hover{border-color:var(--gold);color:var(--gold)}
 .removeSetBtn{background:none;border:none;color:var(--text4);cursor:pointer;font-size:1rem;padding:0 4px}
@@ -147,10 +141,7 @@ main{flex:1;padding:8px 16px 90px;max-width:1200px;margin:0 auto;width:100%;over
 .setLog td{padding:5px 10px;color:var(--text2)}
 
 /* ─── PROGRESS PAGE ────────────────────────────────────────── */
-/* ─── STREAK + CALENDAR ROW ────────────────────────────────── */
 .streakCalRow{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:20px;width:100%}
-
-/* Streak compact card - horizontal pill */
 .streakCompact{background:var(--bg3);border:1px solid var(--gold3);border-radius:12px;padding:14px 28px;display:flex;flex-direction:row;align-items:center;gap:28px;box-shadow:var(--goldGlow);width:fit-content}
 .streakCompactTop{display:flex;align-items:baseline;gap:6px}
 .streakFire{font-size:1rem}
@@ -192,46 +183,17 @@ main{flex:1;padding:8px 16px 90px;max-width:1200px;margin:0 auto;width:100%;over
 .loadBar{height:100%;background:var(--goldGrad);border-radius:2px;transition:width .5s ease;min-width:4px}
 .loadSets{color:var(--text4);font-size:.75rem;width:40px;text-align:left;letter-spacing:.5px}
 .noLoadData{color:var(--text5);font-size:.85rem;text-align:center;padding:20px;letter-spacing:1px;text-transform:uppercase}
-
-.prGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:28px}
-.prCard{background:var(--bg3);border-radius:4px;padding:18px;border:1px solid var(--border);border-top:2px solid var(--gold);transition:.2s}
-.prCard:hover{box-shadow:var(--goldGlow);border-color:var(--gold)}
-.prCard .prEx{font-size:.75rem;color:var(--text4);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase}
-.prCard .prVal{font-size:1.6rem;font-weight:700;color:var(--gold);font-family:'Bebas Neue',sans-serif;letter-spacing:1px}
-.prCard .prDate{font-size:.72rem;color:var(--text5);margin-top:6px;letter-spacing:.5px}
 .chartWrap{background:var(--bg3);border-radius:4px;padding:24px;margin-bottom:20px;border:1px solid var(--border)}
 .chartWrap h3{margin-bottom:16px;color:var(--text2);font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px}
 .chartWrap select{background:var(--bg4);color:var(--text);border:1px solid var(--border2);padding:8px 14px;border-radius:2px;margin-bottom:16px;font-family:'Inter',sans-serif;font-size:.85rem}
 canvas{max-height:260px}
 
-/* ─── PR PAGE ──────────────────────────────────────────────── */
-.muscleSection{background:var(--bg3);border-radius:4px;padding:20px;margin-bottom:14px;border:1px solid var(--border)}
-.muscleSection h3{color:var(--gold);margin-bottom:14px;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;border-bottom:1px solid var(--border);padding-bottom:10px}
-.prTable{width:100%;border-collapse:collapse}
-.prTable th{color:var(--text4);text-align:left;padding:8px 12px;font-size:.72rem;border-bottom:1px solid var(--border);letter-spacing:1px;text-transform:uppercase}
-.prTable td{padding:10px 12px;color:var(--text2);font-size:.88rem;border-bottom:1px solid var(--border2)}
-.prTable tr:last-child td{border-bottom:none}
-.prTable tr:hover td{background:var(--bg4)}
-.prWeight{color:var(--gold);font-weight:700;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px}
-
-/* ─── LEADERBOARD PAGE ─────────────────────────────────────── */
-.lbFilters select{background:var(--bg4);color:var(--text);border:1px solid var(--border2);padding:9px 16px;border-radius:2px;font-family:'Inter',sans-serif;font-size:.85rem;margin-bottom:20px}
-.lbCard{background:var(--bg3);border-radius:4px;padding:16px 20px;margin-bottom:8px;display:flex;align-items:center;gap:16px;border:1px solid var(--border);transition:.2s}
-.lbCard:hover{border-color:var(--gold3)}
-.lbCard.gold{border-left:3px solid #FFD700;background:#0d0b00}
-.lbCard.silver{border-left:3px solid #C0C0C0}
-.lbCard.bronze{border-left:3px solid #CD7F32}
-.lbCard.me{border-color:var(--gold);background:#1a1200;box-shadow:var(--goldGlow)}
-.lbRank{font-size:1.6rem;font-weight:700;width:44px;text-align:center;font-family:'Bebas Neue',sans-serif}
-.lbInfo{flex:1}
-.lbName{font-weight:600;color:var(--text);margin-bottom:2px;font-size:.9rem}
-.lbDetail{font-size:.75rem;color:var(--text4);letter-spacing:.5px;text-transform:uppercase}
-.lbWeight{font-size:1.3rem;font-weight:700;color:var(--gold);font-family:'Bebas Neue',sans-serif;letter-spacing:1px}
-
 /* ─── ABOUT PAGE ───────────────────────────────────────────── */
 .aboutCard{background:var(--bg3);border-radius:4px;padding:28px;max-width:600px;width:100%;border:1px solid var(--border)}
-.avatarWrap{display:flex;justify-content:center;margin-bottom:28px}
+.avatarWrap{position:relative;display:inline-block;margin-bottom:16px;}
 .avatar{width:88px;height:88px;border-radius:50%;background:var(--goldGrad);display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:700;color:#000;font-family:'Bebas Neue',sans-serif;box-shadow:var(--goldGlow)}
+.avatarEditBtn{position:absolute;bottom:0;right:0;width:26px;height:26px;background:var(--goldGrad);border:2px solid var(--bg3);border-radius:50%;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;transition:.2s;}
+.avatarEditBtn:hover{box-shadow:var(--goldGlow);transform:scale(1.1);}
 .aboutForm{display:flex;flex-direction:column;gap:16px}
 .formGroup{display:flex;flex-direction:column;gap:6px}
 .formGroup label{color:var(--text4);font-size:.75rem;font-weight:600;letter-spacing:1px;text-transform:uppercase}
@@ -242,11 +204,23 @@ canvas{max-height:260px}
 .heightOptions select,.weightOptions select{width:auto;padding:11px}
 .heightOptions span,.weightOptions span{color:var(--text4);font-size:.85rem}
 .heightOptions input,.weightOptions input{flex:1}
-.aboutStats{margin-top:24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
-.statCard{background:var(--bg4);border-radius:4px;padding:16px;text-align:center;border:1px solid var(--border);transition:.2s}
-.statCard:hover{border-color:var(--gold3)}
-.statCard .statVal{font-size:1.5rem;font-weight:700;color:var(--gold);font-family:'Bebas Neue',sans-serif;letter-spacing:1px}
-.statCard .statLabel{font-size:.72rem;color:var(--text4);margin-top:4px;letter-spacing:1px;text-transform:uppercase}
+.aboutStats{margin-top:24px}
+
+/* ─── ABOUT VIEW MODE ──────────────────────────────────────── */
+.aboutViewGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.aboutViewItem{background:var(--bg4);border-radius:6px;padding:12px 14px;border:1px solid var(--border);}
+.aboutViewLabel{font-size:.66rem;color:var(--text4);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.aboutViewValue{font-size:.95rem;color:var(--text);font-weight:600;letter-spacing:.3px;}
+.aboutEditBtn{width:100%;margin-top:4px;padding:10px;font-size:.8rem;}
+
+/* ─── ABOUT STATS GRID ─────────────────────────────────────── */
+.aboutStatsRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.aboutStatCard{background:var(--bg4);border-radius:10px;padding:14px 4px;text-align:center;border:1px solid var(--border2);transition:.2s;position:relative;overflow:hidden;}
+.aboutStatCard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--goldGrad);}
+.aboutStatCard:hover{border-color:var(--gold3);box-shadow:var(--goldGlow);transform:translateY(-2px);}
+.aboutStatIcon{font-size:1.2rem;margin-bottom:4px;}
+.aboutStatVal{font-size:1.6rem;font-weight:900;font-family:'Bebas Neue',sans-serif;color:var(--gold2);letter-spacing:1px;line-height:1;margin-bottom:3px;}
+.aboutStatLabel{font-size:.62rem;color:var(--text4);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 /* ─── AI PAGE ──────────────────────────────────────────────── */
 .chatBox{background:var(--bg5);border-radius:4px;padding:16px;height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;margin-bottom:16px;border:1px solid var(--border)}
@@ -267,9 +241,6 @@ canvas{max-height:260px}
 .quickBtns{display:flex;flex-wrap:wrap;gap:8px}
 .quickBtns button{background:var(--bg3);border:1px solid var(--border2);color:var(--text3);padding:8px 14px;border-radius:2px;cursor:pointer;font-size:.78rem;transition:.2s;letter-spacing:.5px;font-family:'Inter',sans-serif}
 .quickBtns button:hover{border-color:var(--gold);color:var(--gold)}
-
-.prPage h2,.leaderboardPage h2,.aboutPage h2,.historyPage h2,.progressPage h2{margin-top:0;padding-top:0}
-.prPage,.leaderboardPage,.aboutPage,.historyPage,.progressPage{padding-top:0}
 .lbSubtitle,.prSubtitle,.aiSub{color:var(--text4);font-size:.78rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:24px}
 
 /* ─── MORE SHEET ───────────────────────────────────────────── */
@@ -287,641 +258,260 @@ canvas{max-height:260px}
 .sheetArrow{color:var(--text5);font-size:1.1rem}
 .sheetDivider{height:1px;background:var(--border);margin:6px 0}
 
-/* ─── DELETE BTN in history ────────────────────────────────── */
+/* ─── DELETE BTN ───────────────────────────────────────────── */
 .sDateRow{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .deleteBtn{background:none;border:1px solid var(--border3);color:var(--text4);padding:4px 10px;border-radius:2px;cursor:pointer;font-size:.72rem;transition:.2s;font-family:'Inter',sans-serif}
 .deleteBtn:hover{border-color:#e74c3c;color:#e74c3c}
 
-/* ─── FEEDBACK PAGE ────────────────────────────────────────── */
-.feedbackPage h2{margin-top:0;margin-bottom:4px}
-.feedbackSub{color:var(--text4);font-size:.78rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px}
-.feedbackCard{background:var(--bg3);border-radius:4px;padding:20px;border:1px solid var(--border);max-width:560px;display:flex;flex-direction:column;gap:14px}
-.feedbackCard textarea{width:100%;padding:11px 14px;border-radius:2px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);font-size:.92rem;font-family:'Inter',sans-serif;resize:vertical;transition:.2s}
-.feedbackCard textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 1px var(--gold3)}
-.feedbackCard textarea::placeholder{color:var(--text5)}
-.feedbackMsg{padding:10px 14px;border-radius:2px;font-size:.82rem;letter-spacing:.5px}
-.feedbackMsg.success{background:#0d1f0d;border:1px solid #27ae60;color:#27ae60}
-.feedbackMsg.error{background:#1f0d0d;border:1px solid #e74c3c;color:#e74c3c}
-.feedbackHistory{margin-top:20px;max-width:560px}
-.feedbackHistory h3{color:var(--text3);font-size:.8rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;font-family:'Bebas Neue',sans-serif;font-size:1rem}
-.feedbackItem{background:var(--bg3);border-radius:4px;padding:12px 16px;margin-bottom:8px;border:1px solid var(--border);border-left:3px solid var(--gold3)}
-.feedbackItem .fiType{font-size:.65rem;color:var(--gold3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
-.feedbackItem .fiTitle{font-size:.88rem;color:var(--text);font-weight:600;margin-bottom:4px}
-.feedbackItem .fiDesc{font-size:.78rem;color:var(--text4);line-height:1.4}
-.feedbackItem .fiDate{font-size:.65rem;color:var(--text5);margin-top:6px}
+/* ─── NAV BUTTONS ──────────────────────────────────────────── */
+.navProfileBtn{background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;}
+.navAvatar{width:32px;height:32px;border-radius:50%;background:var(--goldGrad);display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:#000;font-family:'Bebas Neue',sans-serif;box-shadow:var(--goldGlow);border:2px solid var(--gold3);transition:.2s;letter-spacing:0;}
+.navProfileBtn:hover .navAvatar{box-shadow:0 0 14px rgba(201,168,76,0.6);transform:scale(1.08);}
+.navDrawerBtn{background:none;border:1px solid var(--border3);color:var(--text3);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:.2s;}
+.navDrawerBtn:hover{border-color:var(--gold);color:var(--gold);box-shadow:var(--goldGlow)}
 
-/* ─── FIX TOP SPACE ON ALL PAGES ──────────────────────────── */
-.page > div{padding-top:0!important}
-.prPage,.leaderboardPage,.aboutPage,.historyPage,.progressPage,.feedbackPage,.aiPage{margin-top:0;padding-top:0}
-.prPage h2,.leaderboardPage h2,.aboutPage h2,.historyPage h2,.aiPage h2{margin-top:0!important;padding-top:0!important;margin-bottom:10px}
+/* ─── DRAWER ───────────────────────────────────────────────── */
+.drawerOverlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:80;backdrop-filter:blur(2px);}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:88vw;max-width:360px;background:var(--bg2);z-index:90;display:flex;flex-direction:column;border-right:1px solid var(--border2);transform:translateX(-110%);transition:transform .38s cubic-bezier(.34,1.56,.64,1);box-shadow:4px 0 40px rgba(0,0,0,.8);}
+.drawer.open{transform:translateX(0);}
+.drawerHeader{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.drawerTitle{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:3px;color:var(--gold2);}
+.drawerClose{background:var(--bg4);border:1px solid var(--border3);color:var(--text3);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;transition:.2s;}
+.drawerClose:hover{border-color:var(--gold);color:var(--gold)}
+.drawerComposer{padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg3);flex-shrink:0;}
+.composerRow{display:flex;align-items:center;gap:6px;width:100%;overflow:hidden;}
+.composerRow input[type="text"]{flex:1;min-width:0;background:var(--bg4);border:1px solid var(--border2);border-radius:20px;padding:8px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:.82rem;transition:.2s;}
+.composerRow input[type="text"]:focus{outline:none;border-color:var(--gold)}
+.composerRow input[type="text"]::placeholder{color:var(--text5)}
+.cameraBtn{background:var(--bg4);border:1px solid var(--border2);width:32px;height:32px;min-width:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.9rem;transition:.2s;flex-shrink:0;}
+.cameraBtn:hover{border-color:var(--gold);box-shadow:var(--goldGlow)}
+.composerPost{background:var(--goldGrad);color:#000;border:none;padding:7px 12px;border-radius:20px;font-weight:700;cursor:pointer;font-size:.72rem;letter-spacing:1px;text-transform:uppercase;font-family:'Inter',sans-serif;transition:.2s;white-space:nowrap;flex-shrink:0;}
+.composerPost:hover{box-shadow:var(--goldGlow)}
+#imagePreviewWrap{position:relative;margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border2);}
+#imagePreview{width:100%;max-height:160px;object-fit:cover;display:block;border-radius:8px;}
+.removeImgBtn{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.7);border:none;color:#fff;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;}
+.feedImage{width:100%;border-radius:8px;object-fit:cover;max-height:200px;display:block;margin-bottom:8px;border:1px solid var(--border);}
+.drawerFeed{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:10px;}
+.feedEmpty{text-align:center;color:var(--text5);font-size:.8rem;letter-spacing:1px;padding:40px 20px;text-transform:uppercase;}
+.feedCard{background:var(--bg3);border-radius:10px;padding:12px 14px;border:1px solid var(--border);transition:.2s;}
+.feedCard:hover{border-color:var(--border2)}
+.feedCardTop{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.feedAvatar{width:32px;height:32px;border-radius:50%;background:var(--goldGrad);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#000;font-family:'Bebas Neue',sans-serif;flex-shrink:0;}
+.feedMeta{flex:1}
+.feedName{font-size:.82rem;font-weight:600;color:var(--text);letter-spacing:.3px}
+.feedName:hover{color:var(--gold)}
+.feedTime{font-size:.68rem;color:var(--text4);margin-top:1px}
+.feedDelete{background:none;border:none;color:var(--text5);cursor:pointer;font-size:.85rem;padding:4px;transition:.15s;}
+.feedDelete:hover{color:#e74c3c}
+.feedCaption{font-size:.84rem;color:var(--text2);line-height:1.5;margin-bottom:10px;}
+.feedActions{display:flex;align-items:center;gap:8px}
+.feedLike{background:none;border:1px solid var(--border2);color:var(--text4);padding:5px 12px;border-radius:20px;cursor:pointer;font-size:.75rem;transition:.2s;display:flex;align-items:center;gap:4px;}
+.feedLike:hover{border-color:var(--gold3);color:var(--text2)}
+.feedLike.liked{border-color:#e74c3c;color:#e74c3c;background:rgba(231,76,60,0.08)}
+.composerAvatar{width:32px;height:32px;border-radius:50%;background:var(--goldGrad);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#000;font-family:'Bebas Neue',sans-serif;flex-shrink:0;}
 
-/* ════════════════════════════════════════
-   DEFINITIVE LAYOUT FIX
-   ════════════════════════════════════════ */
+/* ─── PR PAGE ──────────────────────────────────────────────── */
+.prPage h2{margin-top:0}
+.prSubtitle{color:var(--text4);font-size:.75rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:20px}
+.prMuscleSection{margin-bottom:24px}
+.prMuscleHeader{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;color:var(--gold2);padding:6px 0 8px;border-bottom:1px solid var(--border);margin-bottom:10px;text-transform:uppercase;}
+.prCard{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;transition:.2s;}
+.prCard:hover{border-color:var(--gold3);box-shadow:var(--goldGlow)}
+.prExName{font-size:.85rem;font-weight:600;color:var(--text2);flex:1;}
+.prRight{text-align:right}
+.prWeightBig{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--gold2);letter-spacing:1px;line-height:1;}
+.prWeightBig span{font-size:.75rem;color:var(--text4);margin-left:2px}
+.prRepsDate{font-size:.68rem;color:var(--text4);margin-top:2px;letter-spacing:.5px;}
 
-/* No top margin/padding on any page container */
-.page.active { display:block; padding:0; margin:0; }
-.page > div  { padding-top:0 !important; margin-top:0 !important; }
+/* ─── BADGES PAGE ──────────────────────────────────────────── */
+.badgesPage h2{margin-top:0}
+.badgesSubtitle{color:var(--text4);font-size:.75rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px}
+.badgesSummary{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px 16px;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;color:var(--gold2);margin-bottom:20px;text-align:center;}
+.badgesTierTitle{font-size:.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--text4);margin-bottom:10px;margin-top:4px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.badgesGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;}
+.badgeCard{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px 8px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;transition:.2s;}
+.badgeCard.unlocked{border-color:var(--border2)}
+.badgeCard.unlocked:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.badgeName{font-size:.74rem;font-weight:700;color:var(--text);margin-top:6px;letter-spacing:.3px;}
+.badgeDesc{font-size:.58rem;color:var(--text4);margin-top:3px;line-height:1.4;}
+.badgeProgress{font-size:.62rem;color:var(--text3);margin-top:4px;font-weight:600;letter-spacing:.5px;}
+.badgeTier{font-size:.56rem;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-top:5px;padding:2px 7px;border-radius:10px;}
+.badgeTier.bronze{color:#cd7f32;background:rgba(205,127,50,0.15)}
+.badgeTier.silver{color:#c0c0c0;background:rgba(192,192,192,0.15)}
+.badgeTier.gold{color:#ffd700;background:rgba(255,215,0,0.15)}
+.badgeTier.platinum{color:#e5e4e2;background:rgba(229,228,226,0.15)}
+.badgeTier.diamond{color:#b9f2ff;background:rgba(185,242,255,0.15)}
 
-/* Remove browser default margins from all h2 headings inside pages */
-.page h2 {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-  margin-bottom: 10px;
-  font-size: 1.4rem;
-  font-weight: 700;
-}
+/* ─── REST DAY / FREEZE BUTTONS ────────────────────────────── */
+.restDayBtn{display:block;margin:14px auto 0;background:transparent;border:1px solid #3a6bc4;color:#6a9fd8;padding:9px 24px;border-radius:20px;font-size:.78rem;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;transition:.2s;}
+.restDayBtn:hover{background:rgba(58,107,196,0.15);border-color:#6a9fd8;color:#a0c4f1;}
+.calDay.isRestDay{background:rgba(58,107,196,0.25);border:1px solid #3a6bc4;color:#6a9fd8;border-radius:4px;}
+.calDay.isFreezeDay{background:rgba(91,206,250,0.15);border:1px solid #5bcefa;color:#7dd4f0;border-radius:4px;}
+.freezeBtn{display:block;margin:8px auto 0;background:transparent;border:1px solid #3a8fc4;color:#6ab8d8;padding:9px 24px;border-radius:20px;font-size:.78rem;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;transition:.2s;}
+.freezeBtn:hover{background:rgba(58,143,196,0.15);border-color:#6ab8d8;color:#a0d4f1;}
+.freezeDisplay{background:var(--bg4);border:1px solid #3a8fc4;border-radius:8px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.freezeLabel{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:#6ab8d8;font-weight:600;}
+.freezeIcons{font-size:1.2rem;letter-spacing:4px;}
+.freezeCount{font-size:.7rem;color:var(--text4);letter-spacing:.5px;}
 
-/* Body page fills screen, centered */
-#bodyPage.active .bodyPage {
-  min-height: calc(100vh - 130px);
-}
+/* ─── MODAL DATE PICKER ────────────────────────────────────── */
+.modalDateRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.modalDatePicker{background:var(--bg4);border:1px solid var(--border2);color:var(--text3);padding:5px 10px;border-radius:6px;font-size:.75rem;font-family:'Inter',sans-serif;cursor:pointer;}
+.modalDatePicker:focus{outline:none;border-color:var(--gold);}
 
-/* Bottom nav safe area — ensure content never hides behind it */
-main { padding-bottom: 90px !important; }
+/* ─── HISTORY CALENDAR ─────────────────────────────────────── */
+.histCalDay{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:default;}
+.histCalDay.hasWorkout{cursor:pointer;}
+.histCalDay.hasWorkout:hover{background:var(--bg4);border-radius:4px;}
+.histCalDay.selectedDay{background:var(--bg4);border-radius:4px;border:1px solid var(--gold3);}
+.histDot{width:5px;height:5px;border-radius:50%;}
+.histDot.low{background:#e94560;}
+.histDot.med{background:#f39c12;}
+.histDot.high{background:#27ae60;}
+.histLegend{display:flex;align-items:center;gap:6px;font-size:.65rem;color:var(--text4);margin-top:8px;justify-content:center;}
+.histLegend .histDot{width:7px;height:7px;}
+.histSelectDay{text-align:center;color:var(--text5);font-size:.78rem;letter-spacing:1px;text-transform:uppercase;padding:30px 0;}
+.histDayHeader{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;color:var(--gold2);margin:16px 0 10px;}
 
-/* Utility */
-.emptyState { text-align:center; color:var(--text5); padding:40px; font-size:.85rem; letter-spacing:1px; text-transform:uppercase; }
-.lbSubtitle,.prSubtitle,.aiSub { color:var(--text4); font-size:.75rem; letter-spacing:1px; text-transform:uppercase; margin-bottom:16px; margin-top:2px; }
+/* ─── PR CELEBRATION ───────────────────────────────────────── */
+.prCelebration{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.5);z-index:999;opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
+.prCelebration.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+.prCelebInner{background:linear-gradient(135deg,#1a1a00,#2a2000);border:2px solid var(--gold);border-radius:16px;padding:28px 40px;text-align:center;box-shadow:0 0 40px rgba(255,215,0,0.4);}
+.prCelebIcon{font-size:2.5rem;margin-bottom:8px;}
+.prCelebTitle{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:6px;color:var(--gold);margin-bottom:4px;}
+.prCelebExercise{font-size:.8rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;}
+.prCelebWeight{font-family:'Bebas Neue',sans-serif;font-size:3rem;color:#fff;letter-spacing:2px;line-height:1;}
+.prCelebWeight span{font-size:1.2rem;color:var(--gold3);margin-left:4px;}
 
 /* ─── UNDER CONSTRUCTION ───────────────────────────────────── */
-.underConstruction{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:60px 20px;text-align:center;
-  background:var(--bg3);border-radius:4px;border:1px dashed var(--gold3);
-  margin-top:10px;
-}
+.underConstruction{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;background:var(--bg3);border-radius:4px;border:1px dashed var(--gold3);margin-top:10px;}
 .ucIcon{font-size:3rem;margin-bottom:14px;animation:ucBounce 1.5s ease-in-out infinite}
 @keyframes ucBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .ucTitle{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:4px;color:var(--gold2);margin-bottom:10px}
 .ucMsg{color:var(--text4);font-size:.82rem;letter-spacing:1px;max-width:260px;line-height:1.6}
 
-/* ─── PR PAGE TOP FIX ──────────────────────────────────────── */
-#prPage { display:none }
-#prPage.active { display:block; padding:0 !important; margin:0 !important; }
-#prPage .prPage { padding:0 !important; margin:0 !important; }
-#prPage .prPage h2 { margin-top:0 !important; padding-top:0 !important; }
+/* ─── LAYOUT FIXES ─────────────────────────────────────────── */
+.page.active{display:block;padding:0;margin:0;}
+.page > div{padding-top:0!important;margin-top:0!important;}
+.page h2{margin-top:0!important;padding-top:0!important;margin-bottom:10px;font-size:1.4rem;font-weight:700;}
+#bodyPage.active .bodyPage{min-height:calc(100vh - 130px);}
+main{padding-bottom:90px!important;}
+.emptyState{text-align:center;color:var(--text5);padding:40px;font-size:.85rem;letter-spacing:1px;text-transform:uppercase;}
+#prPage{display:none}
+#prPage.active{display:block;padding:0!important;margin:0!important;}
+#prPage .prPage{padding:0!important;margin:0!important;}
+#prPage .prPage h2{margin-top:0!important;padding-top:0!important;}
 
-/* ─── NAV PROFILE BUTTON ───────────────────────────────────── */
-.navProfileBtn{
-  background:none;border:none;cursor:pointer;padding:0;
-  display:flex;align-items:center;justify-content:center;
-}
-.navAvatar{
-  width:32px;height:32px;
-  border-radius:50%;
-  background:var(--goldGrad);
-  display:flex;align-items:center;justify-content:center;
-  font-size:.9rem;font-weight:700;color:#000;
-  font-family:'Bebas Neue',sans-serif;
-  box-shadow:var(--goldGlow);
-  border:2px solid var(--gold3);
-  transition:.2s;
-  letter-spacing:0;
-}
-.navProfileBtn:hover .navAvatar{
-  box-shadow:0 0 14px rgba(201,168,76,0.6);
-  transform:scale(1.08);
-}
+/* ════════════════════════════════════════
+   FOLLOW SYSTEM STYLES
+   ════════════════════════════════════════ */
 
-/* ─── ABOUT VIEW MODE ──────────────────────────────────────── */
-.aboutViewGrid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-bottom:16px;
-}
-.aboutViewItem{
-  background:var(--bg4);
-  border-radius:6px;
-  padding:12px 14px;
-  border:1px solid var(--border);
-}
-.aboutViewLabel{
-  font-size:.66rem;
-  color:var(--text4);
-  text-transform:uppercase;
-  letter-spacing:1px;
-  margin-bottom:4px;
-}
-.aboutViewValue{
-  font-size:.95rem;
-  color:var(--text);
-  font-weight:600;
-  letter-spacing:.3px;
-}
-.aboutEditBtn{
-  width:100%;
-  margin-top:4px;
-  padding:10px;
-  font-size:.8rem;
-}
+/* ─── FOLLOW COUNTS ROW (About page) ─────────────────────────────────────── */
+.followCountsRow{display:flex;align-items:center;gap:10px;background:var(--bg4);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-top:4px;}
+.followCountCard{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;flex:1;}
+.followCountCard:hover .followCountNum{color:var(--gold2);}
+.followCountNum{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--gold);letter-spacing:1px;line-height:1;transition:.2s;}
+.followCountLabel{font-size:.62rem;color:var(--text4);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;}
+.followDivider{width:1px;height:36px;background:var(--border2);}
+.findPeopleBtn{background:var(--goldGrad);color:#000;border:none;padding:8px 10px;border-radius:20px;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:.2s;flex-shrink:0;}
+.findPeopleBtn:hover{box-shadow:var(--goldGlow);}
 
-/* ─── ABOUT STATS GRID ─────────────────────────────────────── */
-.aboutStatsGrid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-top:20px;
-}
-.aboutStatCard{
-  background:var(--bg4);
-  border-radius:10px;
-  padding:16px 12px;
-  text-align:center;
-  border:1px solid var(--border2);
-  transition:.2s;
-  position:relative;
-  overflow:hidden;
-}
-.aboutStatCard::before{
-  content:'';
-  position:absolute;
-  top:0;left:0;right:0;
-  height:2px;
-  background:var(--goldGrad);
-}
-.aboutStatCard:hover{
-  border-color:var(--gold3);
-  box-shadow:var(--goldGlow);
-  transform:translateY(-2px);
-}
-.aboutStatIcon{
-  font-size:1.4rem;
-  margin-bottom:6px;
-}
-.aboutStatVal{
-  font-size:1.8rem;
-  font-weight:900;
-  font-family:'Bebas Neue',sans-serif;
-  color:var(--gold2);
-  letter-spacing:1px;
-  line-height:1;
-  margin-bottom:4px;
-}
-.aboutStatLabel{
-  font-size:.62rem;
-  color:var(--text4);
-  text-transform:uppercase;
-  letter-spacing:1.5px;
-  font-weight:600;
-}
+/* ─── FOLLOW TOGGLE BUTTON ─────────────────────────────────────────────────── */
+.followToggleBtn{background:var(--goldGrad);color:#000;border:none;padding:7px 16px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;transition:.2s;white-space:nowrap;flex-shrink:0;}
+.followToggleBtn:hover{box-shadow:var(--goldGlow);}
+.followToggleBtn.following{background:transparent;border:1px solid var(--border3);color:var(--text3);}
+.followToggleBtn.following:hover{border-color:#e74c3c;color:#e74c3c;box-shadow:none;}
+.followToggleBtn:disabled{opacity:.5;cursor:not-allowed;}
 
-/* ─── ABOUT STATS ROW (single line) ───────────────────────── */
-.aboutStatsRow{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:8px;
-  margin-top:20px;
-  width:100%;
-}
-.aboutStatsRow .aboutStatCard{
-  flex:1;
-  padding:14px 4px;
-  min-width:0;
-}
-.aboutStatsRow .aboutStatVal{
-  font-size:1.6rem;
-}
-.aboutStatsRow .aboutStatLabel{
-  font-size:.62rem;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
+/* ─── FOLLOW SEARCH MODAL ──────────────────────────────────────────────────── */
+.followSearchModal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:150;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;}
+.followSearchModal.open{opacity:1;pointer-events:all;}
+.followSearchModal.open .followSearchBox{transform:translateY(0);}
+.followSearchBox{background:var(--bg2);border-radius:20px 20px 0 0;border:1px solid var(--border2);border-bottom:none;width:100%;max-width:560px;max-height:85vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.2,.64,1);overflow:hidden;}
+.followSearchHeader{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.followSearchTitle{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:3px;color:var(--gold2);}
+.followSearchClose{background:var(--bg4);border:1px solid var(--border3);color:var(--text3);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;transition:.2s;}
+.followSearchClose:hover{border-color:var(--gold);color:var(--gold);}
+.followSearchInputWrap{position:relative;padding:12px 16px;flex-shrink:0;}
+.followSearchInputWrap input{width:100%;background:var(--bg4);border:1px solid var(--border2);border-radius:24px;padding:10px 40px 10px 16px;color:var(--text);font-family:'Inter',sans-serif;font-size:.88rem;transition:.2s;}
+.followSearchInputWrap input:focus{outline:none;border-color:var(--gold);}
+.followSearchInputWrap input::placeholder{color:var(--text5);}
+.followSearchIcon{position:absolute;right:28px;top:50%;transform:translateY(-50%);font-size:1rem;pointer-events:none;}
+.followSearchResults{flex:1;overflow-y:auto;padding:0 12px 20px;}
+.followSearchHint{text-align:center;color:var(--text5);font-size:.78rem;letter-spacing:1px;padding:30px 20px;text-transform:uppercase;}
+.followUserCard{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:8px;border-bottom:1px solid var(--border);transition:.15s;}
+.followUserCard:hover{background:var(--bg3);}
+.followUserAvatar{width:38px;height:38px;border-radius:50%;background:var(--goldGrad);display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:700;color:#000;font-family:'Bebas Neue',sans-serif;flex-shrink:0;}
+.followUserInfo{flex:1;cursor:pointer;}
+.followUserInfo:hover .followUserName{color:var(--gold);}
+.followUserName{font-size:.88rem;font-weight:600;color:var(--text);transition:.15s;}
+.followUserMeta{font-size:.68rem;color:var(--text4);margin-top:2px;letter-spacing:.3px;}
 
-/* ─── NAV DRAWER BUTTON ────────────────────────────────────── */
-.navDrawerBtn{
-  background:none;border:1px solid var(--border3);
-  color:var(--text3);width:32px;height:32px;
-  border-radius:50%;cursor:pointer;font-size:.95rem;
-  display:flex;align-items:center;justify-content:center;
-  transition:.2s;
-}
-.navDrawerBtn:hover{border-color:var(--gold);color:var(--gold);box-shadow:var(--goldGlow)}
+/* ─── PUBLIC PROFILE MODAL ─────────────────────────────────────────────────── */
+.publicProfileModal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:160;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;}
+.publicProfileModal.open{opacity:1;pointer-events:all;}
+.publicProfileModal.open .publicProfileBox{transform:translateY(0);}
+.publicProfileBox{background:var(--bg2);border-radius:20px 20px 0 0;border:1px solid var(--border2);border-bottom:none;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:24px 20px 40px;display:flex;flex-direction:column;align-items:center;text-align:center;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.2,.64,1);position:relative;}
+.publicProfileClose{position:absolute;top:14px;right:14px;background:var(--bg4);border:1px solid var(--border3);color:var(--text3);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;transition:.2s;}
+.publicProfileClose:hover{border-color:var(--gold);color:var(--gold);}
+.profileAvatar{width:72px;height:72px;border-radius:50%;background:var(--goldGrad);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#000;font-family:'Bebas Neue',sans-serif;box-shadow:var(--goldGlow);margin-bottom:10px;}
+.profileName{font-size:1.2rem;font-weight:700;color:var(--text);letter-spacing:.3px;}
+.profileUsername{font-size:.75rem;color:var(--text4);letter-spacing:1px;margin-top:2px;}
+.profileMemberSince{font-size:.68rem;color:var(--text5);margin-top:4px;letter-spacing:.5px;}
+.profileFollowBtn{margin:14px 0 6px;padding:9px 28px;font-size:.8rem;}
+.profileFollowRow{display:flex;align-items:center;gap:24px;margin:14px 0;}
+.profileFollowStat{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.profileFollowNum{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--gold2);letter-spacing:1px;line-height:1;}
+.profileFollowLabel{font-size:.6rem;color:var(--text4);text-transform:uppercase;letter-spacing:1.5px;}
+.profileFollowDivider{width:1px;height:32px;background:var(--border2);}
+.profileStatsGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-bottom:16px;}
+.profileStatCard{background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px 6px;}
+.profileStatVal{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--gold2);letter-spacing:1px;}
+.profileStatLabel{font-size:.6rem;color:var(--text4);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+.profileSection{width:100%;text-align:left;margin-bottom:14px;}
+.profileSectionTitle{font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--text4);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.profilePRRow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border2);font-size:.84rem;}
+.profilePREx{color:var(--text2);}
+.profilePRWeight{color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;}
+.profileRecentRow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border2);font-size:.82rem;}
+.profileRecentMuscle{color:var(--gold3);font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;width:70px;flex-shrink:0;}
+.profileRecentEx{color:var(--text2);flex:1;}
+.profileRecentDate{color:var(--text5);font-size:.7rem;white-space:nowrap;}
+.profileLoading{color:var(--text4);font-size:.82rem;letter-spacing:1px;padding:40px 20px;text-align:center;}
 
-/* ─── DRAWER OVERLAY ───────────────────────────────────────── */
-.drawerOverlay{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.6);
-  z-index:80;
-  backdrop-filter:blur(2px);
-}
 
-/* ─── DRAWER PANEL ─────────────────────────────────────────── */
-.drawer{
-  position:fixed;top:0;left:0;bottom:0;
-  width:88vw;max-width:360px;
-  background:var(--bg2);
-  z-index:90;
-  display:flex;flex-direction:column;
-  border-right:1px solid var(--border2);
-  transform:translateX(-110%);
-  transition:transform .38s cubic-bezier(.34,1.56,.64,1);
-  box-shadow:4px 0 40px rgba(0,0,0,.8);
-}
-.drawer.open{
-  transform:translateX(0);
-}
-
-/* ─── DRAWER HEADER ────────────────────────────────────────── */
-.drawerHeader{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:16px 16px 12px;
-  border-bottom:1px solid var(--border);
-  flex-shrink:0;
-}
-.drawerTitle{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:1.3rem;letter-spacing:3px;color:var(--gold2);
-}
-.drawerClose{
-  background:var(--bg4);border:1px solid var(--border3);
-  color:var(--text3);width:28px;height:28px;
-  border-radius:50%;cursor:pointer;font-size:.8rem;
-  display:flex;align-items:center;justify-content:center;transition:.2s;
-}
-.drawerClose:hover{border-color:var(--gold);color:var(--gold)}
-
-/* ─── POST COMPOSER ────────────────────────────────────────── */
-.drawerComposer{
-  padding:10px 12px;
-  border-bottom:1px solid var(--border);
-  background:var(--bg3);
-  flex-shrink:0;
-}
-.composerRow{
-  display:flex;align-items:center;gap:6px;
-  width:100%;overflow:hidden;
-}
-.composerRow input[type="text"]{
-  flex:1;min-width:0;background:var(--bg4);border:1px solid var(--border2);
-  border-radius:20px;padding:8px 12px;color:var(--text);
-  font-family:'Inter',sans-serif;font-size:.82rem;transition:.2s;
-}
-.composerRow input[type="text"]:focus{outline:none;border-color:var(--gold)}
-.composerRow input[type="text"]::placeholder{color:var(--text5)}
-.cameraBtn{
-  background:var(--bg4);border:1px solid var(--border2);
-  width:32px;height:32px;min-width:32px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;font-size:.9rem;transition:.2s;flex-shrink:0;
-}
-.cameraBtn:hover{border-color:var(--gold);box-shadow:var(--goldGlow)}
-.composerPost{
-  background:var(--goldGrad);color:#000;border:none;
-  padding:7px 12px;border-radius:20px;font-weight:700;
-  cursor:pointer;font-size:.72rem;letter-spacing:1px;
-  text-transform:uppercase;font-family:'Inter',sans-serif;
-  transition:.2s;white-space:nowrap;flex-shrink:0;
-}
-.composerPost:hover{box-shadow:var(--goldGlow)}
-#imagePreviewWrap{
-  position:relative;margin-top:8px;border-radius:8px;overflow:hidden;
-  border:1px solid var(--border2);
-}
-#imagePreview{
-  width:100%;max-height:160px;object-fit:cover;display:block;border-radius:8px;
-}
-.removeImgBtn{
-  position:absolute;top:6px;right:6px;
-  background:rgba(0,0,0,.7);border:none;color:#fff;
-  width:24px;height:24px;border-radius:50%;cursor:pointer;
-  font-size:.75rem;display:flex;align-items:center;justify-content:center;
-}
-.feedImage{
-  width:100%;border-radius:8px;object-fit:cover;
-  max-height:200px;display:block;margin-bottom:8px;
-  border:1px solid var(--border);
-}
-
-/* ─── FEED ─────────────────────────────────────────────────── */
-.drawerFeed{
-  flex:1;overflow-y:auto;
-  padding:10px 12px;
-  display:flex;flex-direction:column;gap:10px;
-}
-.feedEmpty{
-  text-align:center;color:var(--text5);
-  font-size:.8rem;letter-spacing:1px;
-  padding:40px 20px;text-transform:uppercase;
-}
-.feedCard{
-  background:var(--bg3);border-radius:10px;
-  padding:12px 14px;border:1px solid var(--border);
-  transition:.2s;
-}
-.feedCard:hover{border-color:var(--border2)}
-.feedCardTop{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.feedAvatar{
-  width:32px;height:32px;border-radius:50%;
-  background:var(--goldGrad);
-  display:flex;align-items:center;justify-content:center;
-  font-size:.85rem;font-weight:700;color:#000;
-  font-family:'Bebas Neue',sans-serif;flex-shrink:0;
-}
-.feedMeta{flex:1}
-.feedName{font-size:.82rem;font-weight:600;color:var(--text);letter-spacing:.3px}
-.feedTime{font-size:.68rem;color:var(--text4);margin-top:1px}
-.feedTag{color:var(--gold3);font-weight:600}
-.feedDelete{
-  background:none;border:none;color:var(--text5);
-  cursor:pointer;font-size:.85rem;padding:4px;transition:.15s;
-}
-.feedDelete:hover{color:#e74c3c}
-.feedCaption{
-  font-size:.84rem;color:var(--text2);
-  line-height:1.5;margin-bottom:10px;
-}
-.feedActions{display:flex;align-items:center;gap:8px}
-.feedLike{
-  background:none;border:1px solid var(--border2);
-  color:var(--text4);padding:5px 12px;border-radius:20px;
-  cursor:pointer;font-size:.75rem;transition:.2s;
-  display:flex;align-items:center;gap:4px;
-}
-.feedLike:hover{border-color:var(--gold3);color:var(--text2)}
-.feedLike.liked{border-color:#e74c3c;color:#e74c3c;background:rgba(231,76,60,0.08)}
-
-/* ─── AVATAR EDIT BUTTON ───────────────────────────────────── */
-.avatarWrap{
-  position:relative;
-  display:inline-block;
-  margin-bottom:16px;
-}
-.avatarEditBtn{
-  position:absolute;
-  bottom:0;right:0;
-  width:26px;height:26px;
-  background:var(--goldGrad);
-  border:2px solid var(--bg3);
-  border-radius:50%;
-  cursor:pointer;
-  font-size:.7rem;
-  display:flex;align-items:center;justify-content:center;
-  transition:.2s;
-}
-.avatarEditBtn:hover{
-  box-shadow:var(--goldGlow);
-  transform:scale(1.1);
-}
-
-/* ─── PERSONAL RECORDS ─────────────────────────────────────── */
-.prPage h2{ margin-top:0 }
-.prSubtitle{ color:var(--text4);font-size:.75rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:20px }
-.prMuscleSection{ margin-bottom:24px }
-.prMuscleHeader{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:1rem;letter-spacing:3px;
-  color:var(--gold2);
-  padding:6px 0 8px;
-  border-bottom:1px solid var(--border);
-  margin-bottom:10px;
-  text-transform:uppercase;
-}
-.prCard{
-  display:flex;align-items:center;justify-content:space-between;
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:8px;padding:12px 14px;
-  margin-bottom:8px;transition:.2s;
-}
-.prCard:hover{ border-color:var(--gold3);box-shadow:var(--goldGlow) }
-.prExName{
-  font-size:.85rem;font-weight:600;
-  color:var(--text2);flex:1;
-}
-.prRight{ text-align:right }
-.prWeightBig{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:1.4rem;color:var(--gold2);
-  letter-spacing:1px;line-height:1;
-}
-.prWeightBig span{ font-size:.75rem;color:var(--text4);margin-left:2px }
-.prRepsDate{
-  font-size:.68rem;color:var(--text4);
-  margin-top:2px;letter-spacing:.5px;
-}
-
-/* ─── BADGES PAGE ──────────────────────────────────────────── */
-.badgesPage h2{ margin-top:0 }
-.badgesSubtitle{ color:var(--text4);font-size:.75rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px }
-.badgesSummary{
-  background:var(--bg3);border:1px solid var(--border2);
-  border-radius:8px;padding:12px 16px;
-  font-family:'Bebas Neue',sans-serif;font-size:1.1rem;
-  letter-spacing:2px;color:var(--gold2);
-  margin-bottom:20px;text-align:center;
-}
-.badgesTierTitle{
-  font-size:.72rem;letter-spacing:2px;text-transform:uppercase;
-  color:var(--text4);margin-bottom:10px;margin-top:4px;
-  padding-bottom:6px;border-bottom:1px solid var(--border);
-}
-.badgesGrid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
-  margin-bottom:24px;
-}
-.badgeCard{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:12px;padding:14px 8px 10px;
-  display:flex;flex-direction:column;align-items:center;
-  text-align:center;transition:.2s;
-}
-.badgeCard.unlocked{ border-color:var(--border2) }
-.badgeCard.unlocked:hover{ transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.4) }
-.badgeName{
-  font-size:.74rem;font-weight:700;
-  color:var(--text);margin-top:6px;letter-spacing:.3px;
-}
-.badgeDesc{
-  font-size:.58rem;color:var(--text4);
-  margin-top:3px;line-height:1.4;
-}
-.badgeProgress{
-  font-size:.62rem;color:var(--text3);
-  margin-top:4px;font-weight:600;letter-spacing:.5px;
-}
-.badgeTier{
-  font-size:.56rem;text-transform:uppercase;
-  letter-spacing:1.5px;font-weight:700;
-  margin-top:5px;padding:2px 7px;border-radius:10px;
-}
-.badgeTier.bronze{ color:#cd7f32;background:rgba(205,127,50,0.15) }
-.badgeTier.silver{ color:#c0c0c0;background:rgba(192,192,192,0.15) }
-.badgeTier.gold{ color:#ffd700;background:rgba(255,215,0,0.15) }
-.badgeTier.platinum{ color:#e5e4e2;background:rgba(229,228,226,0.15) }
-
-/* ─── REST DAY BUTTON ──────────────────────────────────────── */
-.restDayBtn{
-  display:block;
-  margin:14px auto 0;
-  background:transparent;
-  border:1px solid #3a6bc4;
-  color:#6a9fd8;
-  padding:9px 24px;
-  border-radius:20px;
-  font-size:.78rem;
-  letter-spacing:1.5px;
-  text-transform:uppercase;
-  cursor:pointer;
-  font-family:'Inter',sans-serif;
-  font-weight:600;
-  transition:.2s;
-}
-.restDayBtn:hover{
-  background:rgba(58,107,196,0.15);
-  border-color:#6a9fd8;
-  color:#a0c4f1;
-}
-
-/* ─── REST DAY CALENDAR ────────────────────────────────────── */
-.calDay.isRestDay{
-  background:rgba(58,107,196,0.25);
-  border:1px solid #3a6bc4;
-  color:#6a9fd8;
-  border-radius:4px;
-}
-
-/* ─── DIAMOND TIER ─────────────────────────────────────────── */
-.badgeTier.diamond{ color:#b9f2ff;background:rgba(185,242,255,0.15) }
-
-/* ─── FREEZE BUTTON ────────────────────────────────────────── */
-.freezeBtn{
-  display:block;
-  margin:8px auto 0;
-  background:transparent;
-  border:1px solid #3a8fc4;
-  color:#6ab8d8;
-  padding:9px 24px;
-  border-radius:20px;
-  font-size:.78rem;
-  letter-spacing:1.5px;
-  text-transform:uppercase;
-  cursor:pointer;
-  font-family:'Inter',sans-serif;
-  font-weight:600;
-  transition:.2s;
-}
-.freezeBtn:hover{
-  background:rgba(58,143,196,0.15);
-  border-color:#6ab8d8;
-  color:#a0d4f1;
-}
-
-/* ─── FREEZE TOKEN DISPLAY ─────────────────────────────────── */
-.freezeDisplay{
-  background:var(--bg4);
-  border:1px solid #3a8fc4;
-  border-radius:8px;
-  padding:12px 16px;
-  margin-bottom:12px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-}
-.freezeLabel{
-  font-size:.72rem;
-  text-transform:uppercase;
-  letter-spacing:1px;
-  color:#6ab8d8;
-  font-weight:600;
-}
-.freezeIcons{
-  font-size:1.2rem;
-  letter-spacing:4px;
-}
-.freezeCount{
-  font-size:.7rem;
-  color:var(--text4);
-  letter-spacing:.5px;
-}
-
-/* ─── MODAL DATE PICKER ────────────────────────────────────── */
-.modalDateRow{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:20px;
-}
-.modalDatePicker{
-  background:var(--bg4);
-  border:1px solid var(--border2);
-  color:var(--text3);
-  padding:5px 10px;
-  border-radius:6px;
-  font-size:.75rem;
-  font-family:'Inter',sans-serif;
-  cursor:pointer;
-}
-.modalDatePicker:focus{ outline:none; border-color:var(--gold); }
-
-/* ─── HISTORY CALENDAR ─────────────────────────────────────── */
-.histCalDay{ position:relative; display:flex; flex-direction:column; align-items:center; gap:3px; cursor:default; }
-.histCalDay.hasWorkout{ cursor:pointer; }
-.histCalDay.hasWorkout:hover{ background:var(--bg4); border-radius:4px; }
-.histCalDay.selectedDay{ background:var(--bg4); border-radius:4px; border:1px solid var(--gold3); }
-.histDot{
-  width:5px; height:5px; border-radius:50%;
-}
-.histDot.low{ background:#e94560; }
-.histDot.med{ background:#f39c12; }
-.histDot.high{ background:#27ae60; }
-.histLegend{
-  display:flex; align-items:center; gap:6px;
-  font-size:.65rem; color:var(--text4);
-  margin-top:8px; justify-content:center;
-}
-.histLegend .histDot{ width:7px; height:7px; }
-
-/* ─── HISTORY DAY DETAIL ───────────────────────────────────── */
-.histSelectDay{
-  text-align:center; color:var(--text5);
-  font-size:.78rem; letter-spacing:1px;
-  text-transform:uppercase; padding:30px 0;
-}
-.histDayHeader{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:1.1rem; letter-spacing:2px;
-  color:var(--gold2); margin:16px 0 10px;
-}
-
-/* ─── PR CELEBRATION ───────────────────────────────────────── */
-.prCelebration{
-  position:fixed;top:50%;left:50%;
-  transform:translate(-50%,-50%) scale(0.5);
-  z-index:999;opacity:0;
-  transition:all .35s cubic-bezier(.34,1.56,.64,1);
-  pointer-events:none;
-}
-.prCelebration.show{
-  opacity:1;transform:translate(-50%,-50%) scale(1);
-}
-.prCelebInner{
-  background:linear-gradient(135deg,#1a1a00,#2a2000);
-  border:2px solid var(--gold);
-  border-radius:16px;
-  padding:28px 40px;
-  text-align:center;
-  box-shadow:0 0 40px rgba(255,215,0,0.4);
-}
-.prCelebIcon{ font-size:2.5rem; margin-bottom:8px; }
-.prCelebTitle{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:2rem;letter-spacing:6px;
-  color:var(--gold);margin-bottom:4px;
-}
-.prCelebExercise{
-  font-size:.8rem;color:var(--text3);
-  text-transform:uppercase;letter-spacing:2px;
-  margin-bottom:10px;
-}
-.prCelebWeight{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:3rem;color:#fff;letter-spacing:2px;line-height:1;
-}
-.prCelebWeight span{
-  font-size:1.2rem;color:var(--gold3);margin-left:4px;
-}
+/* ─── INSTAGRAM-STYLE COMMENTS SHEET ───────────────────────────────────────── */
+.feedCommentBtn{background:none;border:1px solid var(--border2);color:var(--text4);padding:5px 12px;border-radius:20px;cursor:pointer;font-size:.75rem;transition:.2s;display:flex;align-items:center;gap:4px;}
+.feedCommentBtn:hover{border-color:var(--gold3);color:var(--text2);}
+.igSheet{position:fixed;bottom:0;left:0;right:0;max-height:80vh;background:var(--bg2);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);z-index:180;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.2,.64,1);}
+.igSheet.open{transform:translateY(0);}
+.igSheetHeader{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.igSheetTitle{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:3px;color:var(--gold2);}
+.igSheetClose{background:var(--bg4);border:1px solid var(--border3);color:var(--text3);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;transition:.2s;}
+.igSheetClose:hover{border-color:var(--gold);color:var(--gold);}
+.igCommentsList{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:14px;}
+.igNoComments{text-align:center;color:var(--text5);font-size:.8rem;letter-spacing:1px;text-transform:uppercase;padding:30px 0;}
+.igComment{display:flex;gap:10px;align-items:flex-start;}
+.igReply{margin-left:44px;margin-top:10px;}
+.igCommentAvatar{width:32px;height:32px;border-radius:50%;background:var(--goldGrad);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:#000;font-family:'Bebas Neue',sans-serif;flex-shrink:0;}
+.igCommentBody{flex:1;}
+.igCommentTop{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+.igCommentName{font-size:.82rem;font-weight:700;color:var(--text);cursor:pointer;}
+.igCommentName:hover{color:var(--gold);}
+.igCommentTime{font-size:.68rem;color:var(--text5);flex:1;}
+.igCommentDelete{background:none;border:none;color:var(--text5);cursor:pointer;font-size:.72rem;padding:0 2px;transition:.15s;}
+.igCommentDelete:hover{color:#e74c3c;}
+.igCommentText{font-size:.85rem;color:var(--text2);line-height:1.5;margin-bottom:5px;}
+.igReplyBtn{background:none;border:none;color:var(--text4);font-size:.72rem;cursor:pointer;letter-spacing:.5px;padding:0;font-family:'Inter',sans-serif;font-weight:600;transition:.15s;}
+.igReplyBtn:hover{color:var(--gold);}
+.igCommentComposer{border-top:1px solid var(--border);padding:10px 14px;flex-shrink:0;}
+.igReplyingTo{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--gold3);margin-bottom:6px;letter-spacing:.5px;}
+.igReplyingTo button{background:none;border:none;color:var(--text4);cursor:pointer;font-size:.75rem;padding:0 2px;}
+.igReplyingTo.hidden{display:none;}
+.igComposerRow{display:flex;align-items:center;gap:8px;}
+.igComposerAvatar{width:30px;height:30px;border-radius:50%;background:var(--goldGrad);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#000;font-family:'Bebas Neue',sans-serif;flex-shrink:0;}
+.igInput{flex:1;background:var(--bg4);border:1px solid var(--border2);border-radius:20px;padding:8px 14px;color:var(--text);font-family:'Inter',sans-serif;font-size:.84rem;transition:.2s;}
+.igInput:focus{outline:none;border-color:var(--gold);}
+.igInput::placeholder{color:var(--text5);}
+.igSubmitBtn{background:none;border:none;color:var(--gold);font-weight:700;font-size:.82rem;cursor:pointer;font-family:'Inter',sans-serif;padding:4px 6px;transition:.2s;letter-spacing:.5px;}
+.igSubmitBtn:hover{color:var(--gold2);}
