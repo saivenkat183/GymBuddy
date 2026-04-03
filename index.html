@@ -50,7 +50,29 @@
     <!-- BODY MAP PAGE -->
     <div class="page active" id="bodyPage">
       <div class="bodyPage">
-        <div class="streakBanner" id="streakBanner"></div>
+        <div class="bodyTopRow">
+          <div class="streakBanner" id="streakBanner"></div>
+        </div>
+        <div class="sheroWrap">
+          <button class="sheroIconBtn" id="sheroIconBtn" type="button" aria-label="Open Shero tips">&#128161;</button>
+          <div class="sheroCard hidden" id="sheroCard">
+            <div class="sheroTop">
+              <div class="sheroBadge">Shero</div>
+              <div class="sheroTopActions">
+                <button class="sheroClearBtn" id="sheroClearBtn" type="button">Clear</button>
+                <button class="sheroCloseBtn" id="sheroCloseBtn" type="button" aria-label="Close Shero">&times;</button>
+              </div>
+            </div>
+            <div class="sheroBlock">
+              <div class="sheroMood" id="sheroSuggestMood">Suggestion</div>
+              <div class="sheroText" id="sheroSuggestText">Shero is checking your training balance...</div>
+            </div>
+            <div class="sheroBlock">
+              <div class="sheroMood" id="sheroFeedbackMood">Feedback</div>
+              <div class="sheroText" id="sheroFeedbackText">Shero is reviewing your latest training pattern...</div>
+            </div>
+          </div>
+        </div>
         <div class="viewToggle">
           <button class="viewBtn active" id="btnFront" onclick="setView('front')">Front</button>
           <button class="viewBtn" id="btnBack" onclick="setView('back')">Back</button>

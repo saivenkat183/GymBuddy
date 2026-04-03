@@ -325,6 +325,175 @@ function updateStreak() {
 }
 
 // ─── MODAL ────────────────────────────────────────────────────────────────────
+function getCurrentWeekWindow() {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return { monday, sunday };
+}
+
+function getWeeklyMuscleSetCounts() {
+  const { monday, sunday } = getCurrentWeekWindow();
+  const counts = {};
+  allSessions.forEach(session => {
+    const date = new Date(session.date);
+    if (date >= monday && date <= sunday) {
+      counts[session.muscle] = (counts[session.muscle] || 0) + session.sets.length;
+    }
+  });
+  return counts;
+}
+
+function getSheroMessage(mode = 'suggest') {
+  const counts = getWeeklyMuscleSetCounts();
+  const streak = getStreak();
+  const restDays = getRestDays().length;
+  const trained = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const topMuscle = trained[0];
+  const lowMuscles = Object.keys(EXERCISES).filter(muscle => (counts[muscle] || 0) === 0);
+  const latest = allSessions.length
+    ? [...allSessions].sort((a, b) => new Date(b.date) - new Date(a.date))[0]
+    : null;
+
+  if (mode === 'feedback') {
+    if (!allSessions.length) {
+      return {
+        mood: 'Warm-Up',
+        text: 'No sessions yet. Tap a muscle on the body map and I will start giving you real training feedback.'
+      };
+    }
+    if (topMuscle && topMuscle[1] >= 12) {
+      return {
+        mood: 'Recovery Check',
+        text: `${topMuscle[0]} is carrying a lot of volume this week at ${topMuscle[1]} sets. Keep the next session lighter or shift focus to another group.`
+      };
+    }
+    if (streak >= 4) {
+      return {
+        mood: 'Momentum',
+        text: `You are on a ${streak}-day streak. Great consistency. Protect recovery tonight so the streak stays productive, not just long.`
+      };
+    }
+    if (latest) {
+      return {
+        mood: 'Session Read',
+        text: `Your latest work hit ${latest.muscle} with ${latest.sets.length} sets on ${latest.exercise}. Nice session. Balance it with an opposite movement next.`
+      };
+    }
+    return {
+      mood: 'Balance',
+      text: 'You have some movement this week. Keep alternating muscle groups so volume stays balanced across the body map.'
+    };
+  }
+
+  if (!allSessions.length) {
+    return {
+      mood: 'Coach Mode',
+      text: 'Start with a simple push day. Tap Chest, Shoulders, or Triceps and log 3 to 4 quality working sets.'
+    };
+  }
+  if (lowMuscles.includes('Quadriceps') || lowMuscles.includes('Hamstrings')) {
+    return {
+      mood: 'Suggestion',
+      text: 'Lower body is still open this week. Shero suggests a leg session next so your training stays balanced.'
+    };
+  }
+  if (lowMuscles.length) {
+    return {
+      mood: 'Suggestion',
+      text: `You have not touched ${lowMuscles[0]} this week. That is your cleanest next target if you want more complete coverage.`
+    };
+  }
+  if (restDays >= 2) {
+    return {
+      mood: 'Restart',
+      text: 'You have logged a couple of rest days. Ease back in with a moderate session instead of trying to make up for everything at once.'
+    };
+  }
+  return {
+    mood: 'Dialed In',
+    text: 'Your week looks nicely distributed. If energy is good today, pick the muscle that feels freshest and push for quality reps.'
+  };
+}
+
+function getSheroStateKey() {
+  return currentUser ? 'sheroCleared_' + currentUser : null;
+}
+
+function isSheroCleared() {
+  const key = getSheroStateKey();
+  return key ? localStorage.getItem(key) === '1' : false;
+}
+
+function setSheroCleared(value) {
+  const key = getSheroStateKey();
+  if (!key) return;
+  if (value) localStorage.setItem(key, '1');
+  else localStorage.removeItem(key);
+}
+
+function renderShero() {
+  const card = document.getElementById('sheroCard');
+  const iconBtn = document.getElementById('sheroIconBtn');
+  const clearBtn = document.getElementById('sheroClearBtn');
+  const suggestBlock = document.getElementById('sheroSuggestMood')?.parentElement;
+  const feedbackBlock = document.getElementById('sheroFeedbackMood')?.parentElement;
+  const suggestMoodEl = document.getElementById('sheroSuggestMood');
+  const suggestTextEl = document.getElementById('sheroSuggestText');
+  const feedbackMoodEl = document.getElementById('sheroFeedbackMood');
+  const feedbackTextEl = document.getElementById('sheroFeedbackText');
+  if (!card || !iconBtn || !clearBtn || !suggestBlock || !feedbackBlock || !suggestMoodEl || !suggestTextEl || !feedbackMoodEl || !feedbackTextEl) return;
+
+  if (isSheroCleared()) {
+    iconBtn.classList.add('off');
+    suggestBlock.classList.remove('hidden');
+    feedbackBlock.classList.add('hidden');
+    suggestMoodEl.textContent = 'Shero Off';
+    suggestTextEl.textContent = 'No active Shero messages. Tap the bulb again whenever you want new tips.';
+    return;
+  }
+
+  const suggestMessage = getSheroMessage('suggest');
+  const feedbackMessage = getSheroMessage('feedback');
+  iconBtn.classList.remove('off');
+  suggestBlock.classList.remove('hidden');
+  feedbackBlock.classList.remove('hidden');
+  suggestMoodEl.textContent = suggestMessage.mood;
+  suggestTextEl.textContent = suggestMessage.text;
+  feedbackMoodEl.textContent = feedbackMessage.mood;
+  feedbackTextEl.textContent = feedbackMessage.text;
+}
+
+function initShero() {
+  const iconBtn = document.getElementById('sheroIconBtn');
+  const clearBtn = document.getElementById('sheroClearBtn');
+  const closeBtn = document.getElementById('sheroCloseBtn');
+  const card = document.getElementById('sheroCard');
+  if (!iconBtn || !clearBtn || !closeBtn || !card || iconBtn.dataset.bound === 'yes') return;
+  iconBtn.dataset.bound = 'yes';
+  clearBtn.dataset.bound = 'yes';
+  closeBtn.dataset.bound = 'yes';
+  iconBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (isSheroCleared()) setSheroCleared(false);
+    card.classList.toggle('hidden');
+    if (!card.classList.contains('hidden')) renderShero();
+  });
+  card.addEventListener('click', event => event.stopPropagation());
+  clearBtn.addEventListener('click', () => {
+    setSheroCleared(true);
+    renderShero();
+  });
+  closeBtn.addEventListener('click', () => card.classList.add('hidden'));
+  document.addEventListener('click', () => card.classList.add('hidden'));
+  renderShero();
+}
+
 function openMuscle(muscle) {
   currentMuscle = muscle; currentExercise = ''; currentSets = [];
   document.getElementById('muscleLabel').textContent = 'Selected: ' + muscle;
@@ -1616,3 +1785,21 @@ function showMuscleDistribution(muscle, exercise, setsCount) {
   document.body.appendChild(modal);
   requestAnimationFrame(() => modal.classList.add('open'));
 }
+
+initShero();
+
+if (typeof loadSessions === 'function') {
+  const originalLoadSessions = loadSessions;
+  loadSessions = async function(...args) {
+    const result = await originalLoadSessions.apply(this, args);
+    renderShero();
+    return result;
+  };
+}
+
+const originalUpdateStreak = updateStreak;
+updateStreak = function(...args) {
+  const result = originalUpdateStreak.apply(this, args);
+  renderShero();
+  return result;
+};

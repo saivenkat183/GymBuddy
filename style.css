@@ -154,7 +154,109 @@ main{flex:1;padding:10px 16px 96px;max-width:1200px;margin:0 auto;width:100%;ove
 
 /* ─── BODY PAGE ────────────────────────────────────────────── */
 .bodyPage .pageHero{width:min(100%,760px);align-self:stretch}
+.bodyTopRow{width:min(100%,340px);display:flex;align-items:flex-start;justify-content:flex-start;gap:10px}
+.bodyPage{position:relative}
 .streakBanner{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--gold3);border-radius:20px;padding:4px 12px;font-size:.65rem;font-weight:600;color:var(--gold);letter-spacing:1px;text-transform:uppercase;font-family:'Inter',sans-serif;max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheroWrap{position:absolute;right:10px;top:54px;z-index:15}
+.sheroIconBtn{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:1px solid rgba(240,201,90,.4);
+  background:linear-gradient(135deg,rgba(240,201,90,.2),rgba(240,201,90,.08));
+  color:#f6d46f;
+  font-size:1.05rem;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(0,0,0,.22);
+}
+.sheroIconBtn.off{
+  border-color:rgba(120,120,120,.35);
+  background:linear-gradient(135deg,rgba(90,90,90,.18),rgba(70,70,70,.08));
+  color:#7f7f7f;
+  filter:saturate(.2) brightness(.8);
+}
+.sheroCard{
+  position:absolute;
+  top:50%;
+  right:48px;
+  z-index:20;
+  width:min(78vw,280px);
+  background:#0f0f0f;
+  border:1px solid rgba(240,201,90,.3);
+  border-radius:16px;
+  padding:11px 12px;
+  box-shadow:0 10px 24px rgba(0,0,0,.28);
+  transform:translateY(-18%);
+}
+.sheroCard::before{
+  content:'';
+  position:absolute;
+  top:50%;
+  right:-7px;
+  width:12px;
+  height:12px;
+  background:#0f0f0f;
+  border-top:1px solid rgba(240,201,90,.3);
+  border-right:1px solid rgba(240,201,90,.3);
+  transform:rotate(45deg);
+}
+.sheroTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.sheroTopActions{display:flex;align-items:center;gap:8px}
+.sheroBadge{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 10px;
+  border-radius:999px;
+  background:rgba(240,201,90,.12);
+  border:1px solid rgba(240,201,90,.24);
+  color:#f0c95a;
+  font-size:.64rem;
+  letter-spacing:1.3px;
+  text-transform:uppercase;
+  font-weight:700;
+}
+.sheroClearBtn{
+  background:none;
+  border:1px solid rgba(240,201,90,.22);
+  color:#cdb264;
+  border-radius:999px;
+  padding:3px 8px;
+  font-size:.6rem;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  cursor:pointer;
+}
+.sheroCloseBtn{
+  background:none;
+  border:none;
+  color:#d8c27c;
+  font-size:1rem;
+  line-height:1;
+  cursor:pointer;
+}
+.sheroMood{
+  color:#cdb264;
+  font-size:.62rem;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+.sheroBlock + .sheroBlock{
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid rgba(240,201,90,.12);
+}
+.sheroText{
+  color:#ebf6fb;
+  font-size:.8rem;
+  line-height:1.5;
+  min-height:32px;
+}
+.sheroBlock.hidden{display:none}
+@media (max-width:420px){
+  .sheroWrap{right:6px;top:58px}
+  .sheroCard{width:min(82vw,260px);right:44px}
+}
 .viewToggle{display:flex;gap:0;border:1px solid var(--border3);border-radius:2px;overflow:hidden}
 .viewBtn{padding:5px 20px;border:none;background:var(--bg3);color:var(--text3);cursor:pointer;transition:.2s;font-size:.7rem;letter-spacing:2px;text-transform:uppercase;font-family:'Inter',sans-serif}
 .viewBtn.active{background:var(--goldGrad);color:#000;font-weight:700}
