@@ -143,19 +143,26 @@
         </div>
         <div class="muscleLabel" id="muscleLabel">Click a muscle to log workout</div>
         <div class="heatmapLegend">
-          <span>Less trained</span>
-          <div class="legendBar"></div>
-          <span>More trained</span>
+          <span style="color:#e74c3c">🔴 Low</span>
+          <span style="color:#f39c12">🟡 Moderate</span>
+          <span style="color:#27ae60">🟢 Good</span>
         </div>
-        <button class="restDayBtn" onclick="logRestDay()">😴 Log Rest Day</button>
-        <button class="freezeBtn" onclick="useFreeze()">❄️ Use Streak Freeze</button>
+        <div class="bodyActionRow">
+          <button class="restDayBtn bodyActionBtn" onclick="logRestDay()">😴 Rest Day</button>
+          <button class="freezeBtn bodyActionBtn" onclick="useFreeze()">❄️ Freeze</button>
+        </div>
       </div>
     </div>
 
     <!-- HISTORY PAGE -->
     <div class="page" id="historyPage">
       <div class="historyPage">
-        <h2>Workout History</h2>
+        <div class="pageHero pageHeroHistory">
+          <div class="pageEyebrow">Timeline</div>
+          <div class="pageTitleRow">
+            <h2>Workout History</h2>
+          </div>
+        </div>
         <div class="calendarSection">
           <div class="calendarHeader">
             <button class="calNavBtn" onclick="histCalPrev()">‹</button>
@@ -176,7 +183,12 @@
     <!-- PROGRESS PAGE -->
     <div class="page" id="progressPage">
       <div class="progressPage">
-        <h2>Progress & Stats</h2>
+        <div class="pageHero pageHeroProgress">
+          <div class="pageEyebrow">Growth</div>
+          <div class="pageTitleRow">
+            <h2>Progress &amp; Stats</h2>
+          </div>
+        </div>
         <div class="streakCalRow">
           <div class="streakCompact" id="streakCard">
             <div class="streakStat">
@@ -228,18 +240,48 @@
     <!-- BADGES PAGE -->
     <div class="page" id="badgesPage">
       <div class="badgesPage">
-        <h2>🏅 Badges</h2>
-        <p class="badgesSubtitle">Earn badges by crushing your goals</p>
+        <div class="pageHero pageHeroBadges">
+          <div class="pageEyebrow">Rewards</div>
+          <div class="pageTitleRow">
+            <h2>Badges</h2>
+          </div>
+        </div>
         <div id="badgesUnlocked"></div>
         <div id="badgesLocked"></div>
+      </div>
+    </div>
+
+    <!-- GALLERY PAGE -->
+    <div class="page" id="galleryPage">
+      <div class="galleryPage">
+        <div class="pageHero pageHeroGallery galleryHero">
+          <div class="pageEyebrow">Community</div>
+          <div class="galleryHeroTop pageTitleRow">
+            <h2>Gallery</h2>
+            <button class="galleryCameraBtn" onclick="document.getElementById('galleryImageInput').click()" title="Add image">&#128247;</button>
+          </div>
+        </div>
+        <div class="galleryComposer">
+          <input type="file" id="galleryImageInput" accept="image/*" class="hidden" onchange="handleGalleryImageSelect(event)"/>
+          <button class="btn sec hidden" id="galleryRemoveBtn" onclick="removeGalleryDraft()">Remove Draft</button>
+          <div class="galleryPreviewWrap hidden" id="galleryPreviewWrap">
+            <img id="galleryPreview" class="galleryPreview" alt="Gallery preview"/>
+          </div>
+          <button class="btn hidden" id="galleryPostBtn" onclick="submitGalleryImage()">Post to Gallery</button>
+        </div>
+        <div id="galleryGrid" class="galleryGrid"></div>
       </div>
     </div>
 
     <!-- PERSONAL RECORDS PAGE -->
     <div class="page" id="prPage">
       <div class="prPage">
-        <h2>🏆 Personal Records</h2>
-        <p class="prSubtitle">Your best lift per exercise</p>
+        <div class="pageHero pageHeroPR">
+          <div class="pageEyebrow">Strength</div>
+          <div class="pageTitleRow">
+            <h2>Personal Records</h2>
+          </div>
+        </div>
         <div id="prByMuscle"></div>
       </div>
     </div>
@@ -247,7 +289,12 @@
     <!-- ABOUT ME PAGE -->
     <div class="page" id="aboutPage">
       <div class="aboutPage">
-        <h2>👤 About Me</h2>
+        <div class="pageHero pageHeroAbout">
+          <div class="pageEyebrow">Profile</div>
+          <div class="pageTitleRow">
+            <h2>About Me</h2>
+          </div>
+        </div>
         <div class="aboutCard">
           <div class="avatarWrap">
             <div class="avatar" id="avatarInitial"></div>
@@ -327,8 +374,12 @@
     <!-- AI TRAINER PAGE -->
     <div class="page" id="aiPage">
       <div class="aiPage">
-        <h2>🤖 AI Personal Trainer</h2>
-        <p class="aiSub">Ask me anything about workouts, diet, recovery and more!</p>
+        <div class="pageHero pageHeroAI">
+          <div class="pageEyebrow">Coach</div>
+          <div class="pageTitleRow">
+            <h2>AI Personal Trainer</h2>
+          </div>
+        </div>
         <div class="chatBox" id="chatBox">
           <div class="chatMsg bot">
             <div class="chatBubble">Hey! 💪 I'm your AI Personal Trainer. Ask me anything about workouts, diet, or fitness goals!</div>
@@ -353,8 +404,12 @@
     <!-- FEEDBACK PAGE -->
     <div class="page" id="feedbackPage">
       <div class="feedbackPage">
-        <h2>💬 Feedback</h2>
-        <p class="feedbackSub">Help us improve GymBuddy</p>
+        <div class="pageHero pageHeroFeedback">
+          <div class="pageEyebrow">Support</div>
+          <div class="pageTitleRow">
+            <h2>Feedback</h2>
+          </div>
+        </div>
         <div class="feedbackCard">
           <div class="formGroup">
             <label>Type</label>
@@ -410,6 +465,12 @@
   <div class="sheetHandle"></div>
   <div class="sheetTitle">More</div>
   <div class="sheetItems">
+    <button class="sheetItem" onclick="showPageFromSheet('galleryPage')">
+      <span class="sheetIcon">ðŸ“¸</span>
+      <span class="sheetLabel">Gallery</span>
+      <span class="sheetArrow">â€º</span>
+    </button>
+    <div class="sheetDivider"></div>
     <button class="sheetItem" onclick="showPageFromSheet('badgesPage')">
       <span class="sheetIcon">🏅</span>
       <span class="sheetLabel">Badges</span>
@@ -486,6 +547,9 @@
   </div>
 </div>
 
+<script src="js/shared.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/media.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

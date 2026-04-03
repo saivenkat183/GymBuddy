@@ -96,82 +96,6 @@ function logoutFromSheet() {
 }
 
 // ─── AUTH ──────────────────────────────────────────────────────────────────────
-function toggleAuthMode() {
-  isRegister = !isRegister;
-  document.getElementById('authNameWrap').classList.toggle('hidden', !isRegister);
-  document.querySelector('#authScreen .btn').textContent = isRegister ? 'Register' : 'Login';
-  document.querySelector('#authScreen .btn.sec').textContent = isRegister ? 'Already have an account? Login' : 'Don\'t have an account? Register';
-  document.getElementById('authMsg').classList.add('hidden');
-}
-
-function showAuthMsg(m) {
-  const el = document.getElementById('authMsg');
-  el.textContent = m;
-  el.classList.remove('hidden');
-}
-
-async function doAuth() {
-  const username = document.getElementById('authUser').value.trim();
-  const password = document.getElementById('authPass').value;
-  if (!username || !password) { showAuthMsg('Please fill all fields'); return; }
-  const endpoint = isRegister ? '/auth/register' : '/auth/login';
-  const body = isRegister
-    ? { username, password, name: document.getElementById('authName').value.trim() || username }
-    : { username, password };
-  showLoading();
-  try {
-    const res = await fetch(API + endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const data = await res.json();
-    hideLoading();
-    if (!res.ok) { showAuthMsg(data.message); return; }
-    token = data.token; currentUser = data.username;
-    document.getElementById('authScreen').style.display = 'none';
-    document.getElementById('appScreen').style.display = 'flex';
-    document.getElementById('bottomNav').style.display = 'flex';
-    document.getElementById('navUser').textContent = 'Hey, ' + data.name + '!';
-    document.getElementById('avatarInitial').textContent = data.name[0].toUpperCase();
-    document.getElementById('navAvatarInitial').textContent = data.name[0].toUpperCase();
-    await loadSessions();
-    await loadMyFollowCounts();
-    updateStreak();
-    updateHeatmap();
-    loadProfileImage();
-    const now = new Date();
-    calYear = now.getFullYear();
-    calMonth = now.getMonth();
-  } catch (err) { hideLoading(); showAuthMsg('Cannot connect to server. Is it running?'); }
-}
-
-function logout() {
-  currentUser = null; token = null; allSessions = [];
-  myFollowCounts = { followersCount: 0, followingCount: 0 };
-  document.getElementById('authScreen').style.display = 'flex';
-  document.getElementById('appScreen').style.display = 'none';
-  document.getElementById('bottomNav').style.display = 'none';
-  document.getElementById('authUser').value = '';
-  document.getElementById('authPass').value = '';
-}
-
-// ─── SESSIONS ─────────────────────────────────────────────────────────────────
-async function loadSessions() {
-  showLoading();
-  try {
-    const res = await fetch(API + '/workouts', { headers: { 'Authorization': 'Bearer ' + token } });
-    allSessions = await res.json();
-  } catch (err) { console.error('Failed to load sessions:', err); }
-  hideLoading();
-}
-
-// ─── FOLLOW COUNTS ────────────────────────────────────────────────────────────
-async function loadMyFollowCounts() {
-  try {
-    const res = await fetch(API + '/users/me/counts', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    if (res.ok) myFollowCounts = await res.json();
-  } catch (err) { console.error('Failed to load follow counts:', err); }
-}
-
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
 function showPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -191,6 +115,7 @@ function showPage(id, btn) {
   if (id === 'prPage') renderPRByMuscle();
   if (id === 'aboutPage') loadAbout();
   if (id === 'badgesPage') renderBadges();
+  if (id === 'galleryPage') renderGallery();
 }
 
 // ─── BODY VIEW ────────────────────────────────────────────────────────────────
@@ -203,10 +128,27 @@ function setView(v) {
 }
 
 // ─── HEATMAP ──────────────────────────────────────────────────────────────────
+// ─── SET THRESHOLDS: [yellow_min, green_min] per muscle ──────────────────────
+const MUSCLE_THRESHOLDS = {
+  'Chest':       [9, 11],
+  'Shoulders':   [6,  8],
+  'Biceps':      [7,  9],
+  'Triceps':     [7,  9],
+  'Abs':         [9, 11],
+  'Forearms':    [4,  6],
+  'Lats':        [9, 11],
+  'Traps':       [4,  6],
+  'Lower Back':  [3,  5],
+  'Quadriceps':  [7,  9],
+  'Hamstrings':  [6,  7],
+  'Glutes':      [6,  8],
+  'Calves':      [4,  5],
+};
+
 function updateHeatmap() {
-  // Only count sessions from current week (Monday to Sunday)
+  // Only count SETS from current week (Monday to Sunday)
   const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+  const dayOfWeek = now.getDay();
   const monday = new Date(now);
   monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
   monday.setHours(0, 0, 0, 0);
@@ -214,21 +156,26 @@ function updateHeatmap() {
   sunday.setDate(monday.getDate() + 6);
   sunday.setHours(23, 59, 59, 999);
 
-  const counts = {};
+  // Count sets per muscle this week
+  const setCounts = {};
   allSessions.forEach(s => {
     const d = new Date(s.date);
     if (d >= monday && d <= sunday) {
-      counts[s.muscle] = (counts[s.muscle] || 0) + 1;
+      setCounts[s.muscle] = (setCounts[s.muscle] || 0) + s.sets.length;
     }
   });
-  const max = Math.max(...Object.values(counts), 1);
+
   Object.keys(EXERCISES).forEach(muscle => {
     const id = 'hm_' + muscle.replace(/\s+/g, '_');
     const el = document.getElementById(id);
     if (!el) return;
-    const count = counts[muscle] || 0;
-    const intensity = Math.min(Math.floor((count / max) * 3), 3);
-    el.style.fill = MUSCLE_COLORS[intensity];
+    const sets = setCounts[muscle] || 0;
+    const [yellowMin, greenMin] = MUSCLE_THRESHOLDS[muscle] || [5, 10];
+    let color = '#2a2a2a'; // grey — not trained
+    if (sets > 0 && sets < yellowMin)  color = '#e74c3c'; // red — under-trained
+    if (sets >= yellowMin && sets <= greenMin) color = '#f39c12'; // yellow — moderate
+    if (sets > greenMin)               color = '#27ae60'; // green — well-trained
+    el.style.fill = color;
   });
 }
 
@@ -466,6 +413,7 @@ async function saveWorkout() {
     updateHeatmap();
     updateStreak();
     closeModal();
+    showMuscleDistribution(currentMuscle, currentExercise, validSets.length);
   } catch (err) {
     hideLoading();
     alert('Failed to save workout. Is the server running?');
@@ -517,7 +465,9 @@ function renderHistory() {
   const now = new Date();
   if (!histCalYear) { histCalYear = now.getFullYear(); histCalMonth = now.getMonth(); }
   renderHistoryCalendar();
-  document.getElementById('historyDayDetail').innerHTML = '<div class="histSelectDay">Select a day to view workouts</div>';
+  document.getElementById('historyDayDetail').innerHTML = allSessions.length
+    ? '<div class="histSelectDay">Select a day to view workouts</div>'
+    : '<div class="histSelectDay">No workouts logged yet. Tap a muscle group on Body Map to log your first session.</div>';
 }
 
 function histCalPrev() { histCalMonth--; if (histCalMonth < 0) { histCalMonth = 11; histCalYear--; } renderHistoryCalendar(); }
@@ -617,6 +567,25 @@ function renderProgress() {
   renderWeeklyLoad();
   const exes = [...new Set(allSessions.map(s => s.exercise))];
   const sel = document.getElementById('chartExSelect');
+  const chartCanvas = document.getElementById('progressChart');
+  let emptyEl = document.getElementById('progressEmptyState');
+  if (!allSessions.length) {
+    sel.innerHTML = '';
+    sel.classList.add('hidden');
+    chartCanvas.classList.add('hidden');
+    if (progressChart) { progressChart.destroy(); progressChart = null; }
+    if (!emptyEl) {
+      emptyEl = document.createElement('div');
+      emptyEl.id = 'progressEmptyState';
+      emptyEl.className = 'emptyState';
+      chartCanvas.insertAdjacentElement('afterend', emptyEl);
+    }
+    emptyEl.textContent = 'No progress data yet. Log a few workouts to start tracking trends.';
+    return;
+  }
+  sel.classList.remove('hidden');
+  chartCanvas.classList.remove('hidden');
+  if (emptyEl) emptyEl.remove();
   sel.innerHTML = exes.map(e => `<option>${e}</option>`).join('');
   renderChart();
 }
@@ -701,7 +670,10 @@ function renderWeeklyLoad() {
   const muscleSetCounts = {};
   weekSessions.forEach(s => { muscleSetCounts[s.muscle] = (muscleSetCounts[s.muscle] || 0) + s.sets.length; });
   const container = document.getElementById('muscleLoadBars');
-  if (!Object.keys(muscleSetCounts).length) { container.innerHTML = '<div class="noLoadData">No workouts this week</div>'; return; }
+  if (!Object.keys(muscleSetCounts).length) {
+    container.innerHTML = '<div class="noLoadData">No workouts this week. Log a session on Body Map to see your weekly load.</div>';
+    return;
+  }
   const maxSets = Math.max(...Object.values(muscleSetCounts));
   const sorted = Object.entries(muscleSetCounts).sort((a, b) => b[1] - a[1]);
   container.innerHTML = sorted.map(([muscle, sets]) => {
@@ -854,32 +826,6 @@ function updateFreezeDisplay() {
   el.innerHTML = `<div class="freezeDisplay"><span class="freezeLabel">Streak Freeze Tokens</span><span class="freezeIcons">${icons}</span><span class="freezeCount">${tokens} / 2 remaining</span></div>`;
 }
 
-// ─── PROFILE IMAGE ────────────────────────────────────────────────────────────
-function handleProfileImage(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const base64 = e.target.result;
-    localStorage.setItem('profileImg_' + currentUser, base64);
-    updateAllAvatars(base64);
-  };
-  reader.readAsDataURL(file);
-}
-
-function updateAllAvatars(base64) {
-  const avatarEl = document.getElementById('avatarInitial');
-  if (base64) { avatarEl.style.backgroundImage = `url(${base64})`; avatarEl.style.backgroundSize = 'cover'; avatarEl.style.backgroundPosition = 'center'; avatarEl.textContent = ''; }
-  const navAvatar = document.getElementById('navAvatarInitial');
-  if (base64) { navAvatar.style.backgroundImage = `url(${base64})`; navAvatar.style.backgroundSize = 'cover'; navAvatar.style.backgroundPosition = 'center'; navAvatar.textContent = ''; }
-  const composerAvatar = document.getElementById('composerAvatar');
-  if (composerAvatar && base64) { composerAvatar.style.backgroundImage = `url(${base64})`; composerAvatar.style.backgroundSize = 'cover'; composerAvatar.style.backgroundPosition = 'center'; composerAvatar.textContent = ''; }
-}
-
-function loadProfileImage() {
-  const base64 = localStorage.getItem('profileImg_' + currentUser);
-  if (base64) updateAllAvatars(base64);
-}
 
 function toggleHeightUnit() {
   const unit = document.getElementById('heightUnit').value;
@@ -899,6 +845,7 @@ function loadAbout() {
   } else {
     document.getElementById('aboutViewMode').classList.add('hidden');
     document.getElementById('aboutEditMode').classList.remove('hidden');
+    document.getElementById('aboutStats').innerHTML = '<div class="emptyState">Complete your profile to personalize GymBuddy and track your goals more clearly.</div>';
   }
   if (data.name) document.getElementById('aboutName').value = data.name;
   if (data.age) document.getElementById('aboutAge').value = data.age;
@@ -1023,90 +970,7 @@ function appendMessage(text, sender, isTyping = false) {
 }
 
 // ─── COMMUNITY FEED / DRAWER ──────────────────────────────────────────────────
-function openDrawer() {
-  document.getElementById('drawerOverlay').classList.remove('hidden');
-  const drawer = document.getElementById('drawer');
-  drawer.classList.remove('hidden');
-  requestAnimationFrame(() => drawer.classList.add('open'));
-  if (currentUser) {
-    const name = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}').name || currentUser;
-    const profileImg = localStorage.getItem('profileImg_' + currentUser);
-    const composerAvatar = document.getElementById('composerAvatar');
-    if (profileImg) {
-      composerAvatar.style.backgroundImage = `url(${profileImg})`;
-      composerAvatar.style.backgroundSize = 'cover';
-      composerAvatar.style.backgroundPosition = 'center';
-      composerAvatar.textContent = '';
-    } else {
-      composerAvatar.style.backgroundImage = '';
-      composerAvatar.textContent = name[0].toUpperCase();
-    }
-  }
-  renderFeed();
-}
 
-function closeDrawer() {
-  const drawer = document.getElementById('drawer');
-  drawer.classList.remove('open');
-  setTimeout(() => {
-    drawer.classList.add('hidden');
-    document.getElementById('drawerOverlay').classList.add('hidden');
-  }, 380);
-}
-
-let selectedImageBase64 = null;
-
-function handleImageSelect(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    selectedImageBase64 = e.target.result;
-    document.getElementById('imagePreview').src = selectedImageBase64;
-    document.getElementById('imagePreviewWrap').classList.remove('hidden');
-    document.getElementById('postCaption').placeholder = 'Add a caption...';
-  };
-  reader.readAsDataURL(file);
-}
-
-function removeImage() {
-  selectedImageBase64 = null;
-  document.getElementById('imagePreview').src = '';
-  document.getElementById('imagePreviewWrap').classList.add('hidden');
-  document.getElementById('postImageInput').value = '';
-  document.getElementById('postCaption').placeholder = 'Your thoughts...';
-}
-
-function toggleLike(postId) {
-  const posts = JSON.parse(localStorage.getItem('gymbuddy_posts') || '[]');
-  const post = posts.find(p => p.id === postId);
-  if (!post) return;
-  const idx = post.likes.indexOf(currentUser);
-  if (idx === -1) post.likes.push(currentUser);
-  else post.likes.splice(idx, 1);
-  localStorage.setItem('gymbuddy_posts', JSON.stringify(posts));
-  const btn = document.getElementById('like_' + postId);
-  if (btn) {
-    const liked = post.likes.includes(currentUser);
-    btn.className = 'feedLike' + (liked ? ' liked' : '');
-    btn.innerHTML = (liked ? '❤️' : '🤍') + ' ' + (post.likes.length || '');
-  }
-}
-
-function deletePost(postId) {
-  let posts = JSON.parse(localStorage.getItem('gymbuddy_posts') || '[]');
-  posts = posts.filter(p => p.id !== postId);
-  localStorage.setItem('gymbuddy_posts', JSON.stringify(posts));
-  renderFeed();
-}
-
-function getTimeAgo(date) {
-  const diff = Math.floor((Date.now() - date) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
-  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
-  return Math.floor(diff / 86400) + 'd ago';
-}
 
 // ════════════════════════════════════════════════════════════════════════════
 // FOLLOW SYSTEM
@@ -1239,67 +1103,6 @@ function closePublicProfile() {
   if (modal) modal.classList.remove('open');
 }
 
-// ─── PATCHED submitPost — adds comments array ─────────────────────────────────
-function submitPost() {
-  const caption = document.getElementById('postCaption').value.trim();
-  if (!caption && !selectedImageBase64) return;
-  const name = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}').name || currentUser;
-  const posts = JSON.parse(localStorage.getItem('gymbuddy_posts') || '[]');
-  const profileImg = localStorage.getItem('profileImg_' + currentUser) || null;
-  posts.unshift({
-    id: Date.now(),
-    username: currentUser,
-    name,
-    caption,
-    image: selectedImageBase64 || null,
-    profileImg,
-    date: new Date().toISOString(),
-    likes: [],
-    comments: []
-  });
-  localStorage.setItem('gymbuddy_posts', JSON.stringify(posts));
-  document.getElementById('postCaption').value = '';
-  removeImage();
-  renderFeed();
-}
-
-// ─── PATCHED renderFeed — adds comment button ─────────────────────────────────
-function renderFeed() {
-  const posts = JSON.parse(localStorage.getItem('gymbuddy_posts') || '[]');
-  const feed = document.getElementById('drawerFeed');
-  if (!posts.length) {
-    feed.innerHTML = '<div class="feedEmpty">No posts yet. Be the first to share! 💪</div>';
-    return;
-  }
-  feed.innerHTML = posts.map(p => {
-    const liked = p.likes.includes(currentUser);
-    const isOwner = p.username === currentUser;
-    const timeAgo = getTimeAgo(new Date(p.date));
-    const commentCount = (p.comments || []).length;
-    const avatarStyle = p.profileImg ? `background-image:url(${p.profileImg});background-size:cover;background-position:center;` : '';
-    return `
-      <div class="feedCard">
-        <div class="feedCardTop">
-          <div class="feedAvatar" style="${avatarStyle}">${p.profileImg ? '' : p.name[0].toUpperCase()}</div>
-          <div class="feedMeta">
-            <div class="feedName" onclick="showPublicProfile('${p.username}')">${p.name}</div>
-            <div class="feedTime">${timeAgo}</div>
-          </div>
-          ${isOwner ? `<button class="feedDelete" onclick="deletePost(${p.id})">🗑</button>` : ''}
-        </div>
-        ${p.image ? `<img class="feedImage" src="${p.image}" alt="post"/>` : ''}
-        ${p.caption ? `<div class="feedCaption">${p.caption}</div>` : ''}
-        <div class="feedActions">
-          <button class="feedLike${liked ? ' liked' : ''}" id="like_${p.id}" onclick="toggleLike(${p.id})">
-            ${liked ? '❤️' : '🤍'} ${p.likes.length || ''}
-          </button>
-          <button class="feedCommentBtn" onclick="openCommentsSheet(${p.id})">
-            💬 <span id="commentCount_${p.id}">${commentCount || ''}</span>
-          </button>
-        </div>
-      </div>`;
-  }).join('');
-}
 
 
 // ─── INSTAGRAM-STYLE COMMENTS ─────────────────────────────────────────────────
@@ -1472,23 +1275,30 @@ function renderFeedbackHistory() {
 
 // ─── BADGES ───────────────────────────────────────────────────────────────────
 const BADGES = [
-  { id:'first_step', name:'First Step', desc:'Log your first workout', shape:'shield', tier:'bronze', icon:'👟', progress: () => ({ cur: Math.min(allSessions.length,1), max:1 }) },
-  { id:'bench_100', name:'Bench 100', desc:'Bench Press 100 lbs', shape:'shield', tier:'bronze', icon:'🏋️', progress: () => ({ cur: Math.min(getBestWeight('Bench Press'),100), max:100 }) },
-  { id:'squat_100', name:'Squat 100', desc:'Squat 100 lbs', shape:'shield', tier:'bronze', icon:'🦵', progress: () => ({ cur: Math.min(getBestWeight('Squat'),100), max:100 }) },
-  { id:'deadlift_100', name:'Deadlift 100', desc:'Deadlift 100 lbs', shape:'shield', tier:'bronze', icon:'💀', progress: () => ({ cur: Math.min(getBestWeight('Deadlift'),100), max:100 }) },
-  { id:'streak_7', name:'On Fire', desc:'7 Day Streak', shape:'hexagon', tier:'bronze', icon:'🔥', progress: () => ({ cur: Math.min(getBestStreak(),7), max:7 }) },
-  { id:'pushup_25', name:'Push 25', desc:'25 Push-Ups in a set', shape:'star', tier:'bronze', icon:'💪', progress: () => ({ cur: Math.min(getBestReps('Push-Up'),25), max:25 }) },
-  { id:'pullup_10', name:'Pull 10', desc:'10 Pull-Ups in a set', shape:'star', tier:'bronze', icon:'🔝', progress: () => ({ cur: Math.min(getBestReps('Pull-Up'),10), max:10 }) },
-  { id:'bench_150', name:'Bench 150', desc:'Bench Press 150 lbs', shape:'shield', tier:'silver', icon:'🏋️', progress: () => ({ cur: Math.min(getBestWeight('Bench Press'),150), max:150 }) },
-  { id:'squat_150', name:'Squat 150', desc:'Squat 150 lbs', shape:'shield', tier:'silver', icon:'🦵', progress: () => ({ cur: Math.min(getBestWeight('Squat'),150), max:150 }) },
-  { id:'deadlift_200', name:'Deadlift 200', desc:'Deadlift 200 lbs', shape:'shield', tier:'silver', icon:'💀', progress: () => ({ cur: Math.min(getBestWeight('Deadlift'),200), max:200 }) },
-  { id:'streak_30', name:'Iron Habit', desc:'30 Day Streak', shape:'hexagon', tier:'silver', icon:'⚡', progress: () => ({ cur: Math.min(getBestStreak(),30), max:30 }) },
-  { id:'pushup_50', name:'Push 50', desc:'50 Push-Ups in a set', shape:'star', tier:'silver', icon:'💪', progress: () => ({ cur: Math.min(getBestReps('Push-Up'),50), max:50 }) },
-  { id:'bench_200', name:'Bench 200', desc:'Bench Press 200 lbs', shape:'shield', tier:'gold', icon:'🏋️', progress: () => ({ cur: Math.min(getBestWeight('Bench Press'),200), max:200 }) },
-  { id:'squat_200', name:'Squat 200', desc:'Squat 200 lbs', shape:'shield', tier:'gold', icon:'🦵', progress: () => ({ cur: Math.min(getBestWeight('Squat'),200), max:200 }) },
-  { id:'deadlift_250', name:'Deadlift 250', desc:'Deadlift 250 lbs', shape:'shield', tier:'gold', icon:'💀', progress: () => ({ cur: Math.min(getBestWeight('Deadlift'),250), max:250 }) },
-  { id:'streak_100', name:'Centurion', desc:'100 Day Streak', shape:'hexagon', tier:'gold', icon:'👑', progress: () => ({ cur: Math.min(getBestStreak(),100), max:100 }) },
-  { id:'full_body', name:'Full Body', desc:'Train all 13 muscles in one week', shape:'star', tier:'gold', icon:'🌟',
+  // ── BRONZE ────────────────────────────────────────────────────────────────
+  { id:'first_step',  name:'First Step',  desc:'Log your first workout',       shape:'shield',  tier:'bronze', icon:'👟', progress: () => ({ cur: Math.min(allSessions.length,1), max:1 }) },
+  { id:'bench_100',   name:'Bench 100',   desc:'Bench Press 100 lbs',          shape:'shield',  tier:'bronze', icon:'🏋️', progress: () => ({ cur: Math.min(getBestWeight('Bench Press'),100), max:100 }) },
+  { id:'squat_100',   name:'Squat 100',   desc:'Squat 100 lbs',                shape:'shield',  tier:'bronze', icon:'🦵', progress: () => ({ cur: Math.min(getBestWeight('Squat'),100), max:100 }) },
+  { id:'deadlift_100',name:'Deadlift 100',desc:'Deadlift 100 lbs',             shape:'shield',  tier:'bronze', icon:'💀', progress: () => ({ cur: Math.min(getBestWeight('Deadlift'),100), max:100 }) },
+  { id:'streak_7',    name:'On Fire',     desc:'7 Day Streak',                 shape:'hexagon', tier:'bronze', icon:'🔥', progress: () => ({ cur: Math.min(getBestStreak(),7), max:7 }) },
+  { id:'pushup_25',   name:'Push 25',     desc:'25 Push-Ups in a set',         shape:'star',    tier:'bronze', icon:'💪', progress: () => ({ cur: Math.min(getBestReps('Push-Up'),25), max:25 }) },
+
+  // ── SILVER ────────────────────────────────────────────────────────────────
+  { id:'bench_150',   name:'Bench 150',   desc:'Bench Press 150 lbs',          shape:'shield',  tier:'silver', icon:'🏋️', progress: () => ({ cur: Math.min(getBestWeight('Bench Press'),150), max:150 }) },
+  { id:'squat_150',   name:'Squat 150',   desc:'Squat 150 lbs',                shape:'shield',  tier:'silver', icon:'🦵', progress: () => ({ cur: Math.min(getBestWeight('Squat'),150), max:150 }) },
+  { id:'deadlift_200',name:'Deadlift 200',desc:'Deadlift 200 lbs',             shape:'shield',  tier:'silver', icon:'💀', progress: () => ({ cur: Math.min(getBestWeight('Deadlift'),200), max:200 }) },
+  { id:'streak_30',   name:'Iron Habit',  desc:'30 Day Streak',                shape:'hexagon', tier:'silver', icon:'⚡', progress: () => ({ cur: Math.min(getBestStreak(),30), max:30 }) },
+  { id:'pushup_50',   name:'Push 50',     desc:'50 Push-Ups in a set',         shape:'star',    tier:'silver', icon:'💪', progress: () => ({ cur: Math.min(getBestReps('Push-Up'),50), max:50 }) },
+  { id:'pullup_10',   name:'Pull 10',     desc:'10 Pull-Ups in a set',         shape:'star',    tier:'silver', icon:'🔝', progress: () => ({ cur: Math.min(getBestReps('Pull-Up'),10), max:10 }) },
+
+  // ── GOLD ──────────────────────────────────────────────────────────────────
+  { id:'bench_200',   name:'Bench 200',   desc:'Bench Press 200 lbs',          shape:'shield',  tier:'gold', icon:'🏋️', progress: () => ({ cur: Math.min(getBestWeight('Bench Press'),200), max:200 }) },
+  { id:'squat_200',   name:'Squat 200',   desc:'Squat 200 lbs',                shape:'shield',  tier:'gold', icon:'🦵', progress: () => ({ cur: Math.min(getBestWeight('Squat'),200), max:200 }) },
+  { id:'deadlift_250',name:'Deadlift 250',desc:'Deadlift 250 lbs',             shape:'shield',  tier:'gold', icon:'💀', progress: () => ({ cur: Math.min(getBestWeight('Deadlift'),250), max:250 }) },
+  { id:'streak_100',  name:'Centurion',   desc:'100 Day Streak',               shape:'hexagon', tier:'gold', icon:'👑', progress: () => ({ cur: Math.min(getBestStreak(),100), max:100 }) },
+  { id:'pushup_75',   name:'Push 75',     desc:'75 Push-Ups in a set',         shape:'star',    tier:'gold', icon:'💪', progress: () => ({ cur: Math.min(getBestReps('Push-Up'),75), max:75 }) },
+  { id:'pullup_20',   name:'Pull 20',     desc:'20 Pull-Ups in a set',         shape:'star',    tier:'gold', icon:'🔝', progress: () => ({ cur: Math.min(getBestReps('Pull-Up'),20), max:20 }) },
+  { id:'full_body',   name:'Full Body',   desc:'Train all 13 muscles in one week', shape:'star', tier:'gold', icon:'🌟',
     progress: () => {
       const total = Object.keys(EXERCISES).length;
       const weekMap = {};
@@ -1504,10 +1314,20 @@ const BADGES = [
       return { cur: best, max: total };
     }
   },
-  { id:'deadlift_300', name:'Deadlift 300', desc:'Deadlift 300 lbs', shape:'shield', tier:'platinum', icon:'💀', progress: () => ({ cur: Math.min(getBestWeight('Deadlift'),300), max:300 }) },
-  { id:'streak_365', name:'Legendary', desc:'365 Day Streak', shape:'hexagon', tier:'platinum', icon:'🌟', progress: () => ({ cur: Math.min(getBestStreak(),365), max:365 }) },
-  { id:'deadlift_400', name:'Deadlift 400', desc:'Deadlift 400 lbs', shape:'shield', tier:'diamond', icon:'💀', progress: () => ({ cur: Math.min(getBestWeight('Deadlift'),400), max:400 }) },
-  { id:'streak_500', name:'Immortal', desc:'500 Day Streak', shape:'hexagon', tier:'diamond', icon:'💎', progress: () => ({ cur: Math.min(getBestStreak(),500), max:500 }) }
+
+  // ── PLATINUM ──────────────────────────────────────────────────────────────
+  { id:'bench_300',   name:'Bench 300',   desc:'Bench Press 300 lbs',          shape:'shield',  tier:'platinum', icon:'🏋️', progress: () => ({ cur: Math.min(getBestWeight('Bench Press'),300), max:300 }) },
+  { id:'squat_300',   name:'Squat 300',   desc:'Squat 300 lbs',                shape:'shield',  tier:'platinum', icon:'🦵', progress: () => ({ cur: Math.min(getBestWeight('Squat'),300), max:300 }) },
+  { id:'deadlift_300',name:'Deadlift 300',desc:'Deadlift 300 lbs',             shape:'shield',  tier:'platinum', icon:'💀', progress: () => ({ cur: Math.min(getBestWeight('Deadlift'),300), max:300 }) },
+  { id:'streak_365',  name:'Legendary',   desc:'365 Day Streak',               shape:'hexagon', tier:'platinum', icon:'🌟', progress: () => ({ cur: Math.min(getBestStreak(),365), max:365 }) },
+  { id:'pullup_30',   name:'Pull 30',     desc:'30 Pull-Ups in a set',         shape:'star',    tier:'platinum', icon:'🔝', progress: () => ({ cur: Math.min(getBestReps('Pull-Up'),30), max:30 }) },
+
+  // ── DIAMOND ───────────────────────────────────────────────────────────────
+  { id:'bench_400',   name:'Bench 400',   desc:'Bench Press 400 lbs',          shape:'shield',  tier:'diamond', icon:'🏋️', progress: () => ({ cur: Math.min(getBestWeight('Bench Press'),400), max:400 }) },
+  { id:'squat_400',   name:'Squat 400',   desc:'Squat 400 lbs',                shape:'shield',  tier:'diamond', icon:'🦵', progress: () => ({ cur: Math.min(getBestWeight('Squat'),400), max:400 }) },
+  { id:'deadlift_400',name:'Deadlift 400',desc:'Deadlift 400 lbs',             shape:'shield',  tier:'diamond', icon:'💀', progress: () => ({ cur: Math.min(getBestWeight('Deadlift'),400), max:400 }) },
+  { id:'streak_500',  name:'Immortal',    desc:'500 Day Streak',               shape:'hexagon', tier:'diamond', icon:'💎', progress: () => ({ cur: Math.min(getBestStreak(),500), max:500 }) },
+  { id:'pullup_40',   name:'Pull 40',     desc:'40 Pull-Ups in a set',         shape:'star',    tier:'diamond', icon:'🔝', progress: () => ({ cur: Math.min(getBestReps('Pull-Up'),40), max:40 }) },
 ];
 
 function getBestWeight(exercise) {
@@ -1525,7 +1345,7 @@ const TIER_COLORS = {
   bronze:   { outer:'#cd7f32', inner:'#a0522d', glow:'rgba(205,127,50,0.5)',  grad:'#cd7f32,#a0522d' },
   silver:   { outer:'#c0c0c0', inner:'#888',    glow:'rgba(192,192,192,0.5)', grad:'#e0e0e0,#aaa'    },
   gold:     { outer:'#ffd700', inner:'#c8a400', glow:'rgba(255,215,0,0.6)',   grad:'#ffd700,#c8a400' },
-  platinum: { outer:'#e5e4e2', inner:'#a9a9a9', glow:'rgba(229,228,226,0.7)', grad:'#f0f0f0,#c0bebe' },
+  platinum: { outer:'#eefcff', inner:'#8db7c7', glow:'rgba(185,235,255,0.95)', grad:'#ffffff,#bfe8f7' },
   diamond:  { outer:'#b9f2ff', inner:'#5bcefa', glow:'rgba(91,206,250,0.8)',  grad:'#b9f2ff,#5bcefa' }
 };
 
@@ -1585,4 +1405,214 @@ function renderBadges() {
   });
   document.getElementById('badgesUnlocked').innerHTML = `<div class="badgesSummary">${unlockedCount} / ${BADGES.length} Badges Unlocked</div>`;
   document.getElementById('badgesLocked').innerHTML = html;
+}
+
+// ─── MUSCLE DISTRIBUTION MAP ──────────────────────────────────────────────────
+// Primary (1.0) and secondary (0.5) muscles per exercise
+const MUSCLE_ACTIVATION = {
+  // CHEST
+  'Bench Press':        { primary:['Chest'], secondary:['Shoulders','Triceps'] },
+  'Incline Bench Press':{ primary:['Chest'], secondary:['Shoulders','Triceps'] },
+  'Decline Bench Press':{ primary:['Chest'], secondary:['Triceps'] },
+  'Cable Fly':          { primary:['Chest'], secondary:['Shoulders'] },
+  'Dumbbell Fly':       { primary:['Chest'], secondary:['Shoulders'] },
+  'Push-Up':            { primary:['Chest'], secondary:['Shoulders','Triceps'] },
+  'Chest Dip':          { primary:['Chest'], secondary:['Triceps','Shoulders'] },
+  // SHOULDERS
+  'Overhead Press':     { primary:['Shoulders'], secondary:['Triceps','Traps'] },
+  'Lateral Raise':      { primary:['Shoulders'], secondary:[] },
+  'Front Raise':        { primary:['Shoulders'], secondary:['Chest'] },
+  'Arnold Press':       { primary:['Shoulders'], secondary:['Triceps'] },
+  'Face Pull':          { primary:['Shoulders'], secondary:['Traps','Biceps'] },
+  'Upright Row':        { primary:['Shoulders'], secondary:['Traps','Biceps'] },
+  'Cable Lateral Raise':{ primary:['Shoulders'], secondary:[] },
+  // BICEPS
+  'Barbell Curl':       { primary:['Biceps'], secondary:['Forearms'] },
+  'Dumbbell Curl':      { primary:['Biceps'], secondary:['Forearms'] },
+  'Hammer Curl':        { primary:['Biceps'], secondary:['Forearms'] },
+  'Preacher Curl':      { primary:['Biceps'], secondary:['Forearms'] },
+  'Cable Curl':         { primary:['Biceps'], secondary:['Forearms'] },
+  'Concentration Curl': { primary:['Biceps'], secondary:[] },
+  'Chin-Up':            { primary:['Biceps'], secondary:['Lats','Forearms'] },
+  // TRICEPS
+  'Tricep Pushdown':    { primary:['Triceps'], secondary:[] },
+  'Skull Crusher':      { primary:['Triceps'], secondary:[] },
+  'Close-Grip Bench':   { primary:['Triceps'], secondary:['Chest','Shoulders'] },
+  'Overhead Tricep Extension':{ primary:['Triceps'], secondary:[] },
+  'Dips':               { primary:['Triceps'], secondary:['Chest','Shoulders'] },
+  'Diamond Push-Up':    { primary:['Triceps'], secondary:['Chest'] },
+  'Kickback':           { primary:['Triceps'], secondary:[] },
+  // ABS
+  'Crunch':             { primary:['Abs'], secondary:[] },
+  'Plank':              { primary:['Abs'], secondary:['Lower Back','Shoulders'] },
+  'Leg Raise':          { primary:['Abs'], secondary:[] },
+  'Cable Crunch':       { primary:['Abs'], secondary:[] },
+  'Russian Twist':      { primary:['Abs'], secondary:[] },
+  'Hanging Knee Raise': { primary:['Abs'], secondary:['Forearms'] },
+  'Ab Rollout':         { primary:['Abs'], secondary:['Shoulders','Lats'] },
+  // FOREARMS
+  'Wrist Curl':         { primary:['Forearms'], secondary:[] },
+  'Reverse Wrist Curl': { primary:['Forearms'], secondary:[] },
+  'Reverse Curl':       { primary:['Forearms'], secondary:['Biceps'] },
+  "Farmer's Walk":      { primary:['Forearms'], secondary:['Traps','Shoulders'] },
+  'Dead Hang':          { primary:['Forearms'], secondary:['Lats'] },
+  // LATS
+  'Pull-Up':            { primary:['Lats'], secondary:['Biceps','Forearms'] },
+  'Lat Pulldown':       { primary:['Lats'], secondary:['Biceps','Forearms'] },
+  'Seated Row':         { primary:['Lats'], secondary:['Biceps','Lower Back'] },
+  'Dumbbell Row':       { primary:['Lats'], secondary:['Biceps','Lower Back'] },
+  'T-Bar Row':          { primary:['Lats'], secondary:['Biceps','Lower Back'] },
+  'Straight-Arm Pulldown':{ primary:['Lats'], secondary:[] },
+  // TRAPS
+  'Shrug':              { primary:['Traps'], secondary:['Forearms'] },
+  'Barbell Shrug':      { primary:['Traps'], secondary:['Forearms'] },
+  'Dumbbell Shrug':     { primary:['Traps'], secondary:['Forearms'] },
+  'Rack Pull':          { primary:['Traps'], secondary:['Lower Back','Forearms'] },
+  // LOWER BACK
+  'Deadlift':           { primary:['Lower Back'], secondary:['Hamstrings','Glutes','Traps'] },
+  'Romanian Deadlift':  { primary:['Hamstrings'], secondary:['Lower Back','Glutes'] },
+  'Hyperextension':     { primary:['Lower Back'], secondary:['Glutes'] },
+  'Good Morning':       { primary:['Lower Back'], secondary:['Hamstrings'] },
+  'Cable Pull-Through': { primary:['Glutes'], secondary:['Lower Back','Hamstrings'] },
+  // QUADS
+  'Squat':              { primary:['Quadriceps'], secondary:['Glutes','Hamstrings'] },
+  'Leg Press':          { primary:['Quadriceps'], secondary:['Glutes'] },
+  'Leg Extension':      { primary:['Quadriceps'], secondary:[] },
+  'Lunges':             { primary:['Quadriceps'], secondary:['Glutes','Hamstrings'] },
+  'Hack Squat':         { primary:['Quadriceps'], secondary:['Glutes'] },
+  'Bulgarian Split Squat':{ primary:['Quadriceps'], secondary:['Glutes','Hamstrings'] },
+  // HAMSTRINGS
+  'Leg Curl':           { primary:['Hamstrings'], secondary:[] },
+  'Nordic Curl':        { primary:['Hamstrings'], secondary:[] },
+  'Stiff-Leg Deadlift': { primary:['Hamstrings'], secondary:['Lower Back'] },
+  'Glute-Ham Raise':    { primary:['Hamstrings'], secondary:['Glutes'] },
+  // GLUTES
+  'Hip Thrust':         { primary:['Glutes'], secondary:['Hamstrings'] },
+  'Glute Bridge':       { primary:['Glutes'], secondary:['Hamstrings'] },
+  'Cable Kickback':     { primary:['Glutes'], secondary:[] },
+  'Sumo Squat':         { primary:['Glutes'], secondary:['Quadriceps','Hamstrings'] },
+  'Step-Up':            { primary:['Glutes'], secondary:['Quadriceps'] },
+  'Donkey Kick':        { primary:['Glutes'], secondary:[] },
+  // CALVES
+  'Calf Raise':         { primary:['Calves'], secondary:[] },
+  'Seated Calf Raise':  { primary:['Calves'], secondary:[] },
+  'Leg Press Calf Raise':{ primary:['Calves'], secondary:[] },
+  'Jump Rope':          { primary:['Calves'], secondary:[] },
+  'Donkey Calf Raise':  { primary:['Calves'], secondary:[] },
+};
+
+// Which SVG muscles map to which muscle group names
+const MUSCLE_SVG_IDS = {
+  'Chest':        ['hm_Chest'],
+  'Shoulders':    ['hm_Shoulders'],
+  'Biceps':       ['hm_Biceps'],
+  'Triceps':      ['hm_Triceps'],
+  'Abs':          ['hm_Abs'],
+  'Forearms':     ['hm_Forearms'],
+  'Lats':         ['hm_Lats'],
+  'Traps':        ['hm_Traps'],
+  'Lower Back':   ['hm_Lower_Back'],
+  'Quadriceps':   ['hm_Quadriceps'],
+  'Hamstrings':   ['hm_Hamstrings'],
+  'Glutes':       ['hm_Glutes'],
+  'Calves':       ['hm_Calves'],
+};
+
+function showMuscleDistribution(muscle, exercise, setsCount) {
+  const activation = MUSCLE_ACTIVATION[exercise] || { primary:[muscle], secondary:[] };
+
+  // Build muscle bar data
+  const muscleData = [];
+  activation.primary.forEach(m => muscleData.push({ muscle: m, value: 1.0 }));
+  activation.secondary.forEach(m => muscleData.push({ muscle: m, value: 0.5 }));
+
+  const maxVal = 1.0;
+
+  // Build bar rows HTML
+  const barsHTML = muscleData.map(({ muscle: m, value }) => {
+    const pct = Math.round((value / maxVal) * 100);
+    return `
+      <div class="mdRow">
+        <div class="mdMuscle">${m}</div>
+        <div class="mdBarWrap"><div class="mdBar" style="width:${pct}%"></div></div>
+        <div class="mdVal">${value}</div>
+      </div>`;
+  }).join('');
+
+  // Create inline mini SVG body maps with highlighted muscles
+  const primarySet = new Set(activation.primary);
+  const secondarySet = new Set(activation.secondary);
+
+  function getMuscleColor(muscleId) {
+    // Map SVG ID back to muscle name
+    const nameMap = {
+      'hm_Chest':'Chest','hm_Shoulders':'Shoulders','hm_Biceps':'Biceps',
+      'hm_Triceps':'Triceps','hm_Abs':'Abs','hm_Forearms':'Forearms',
+      'hm_Lats':'Lats','hm_Traps':'Traps','hm_Lower_Back':'Lower Back',
+      'hm_Quadriceps':'Quadriceps','hm_Hamstrings':'Hamstrings',
+      'hm_Glutes':'Glutes','hm_Calves':'Calves'
+    };
+    const name = nameMap[muscleId];
+    if (primarySet.has(name)) return '#00aaff';
+    if (secondarySet.has(name)) return '#0066bb';
+    return '#2a2a2a';
+  }
+
+  const c = getMuscleColor;
+
+  const frontSVG = `<svg viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+    <ellipse cx="100" cy="30" rx="22" ry="26" fill="#3a3a3a"/>
+    <rect x="91" y="54" width="18" height="14" fill="#3a3a3a"/>
+    <rect x="60" y="68" width="80" height="90" rx="8" fill="#222"/>
+    <g><rect x="63" y="70" width="34" height="38" rx="5" fill="${c('hm_Chest')}"/><rect x="103" y="70" width="34" height="38" rx="5" fill="${c('hm_Chest')}"/></g>
+    <g><ellipse cx="52" cy="82" rx="14" ry="18" fill="${c('hm_Shoulders')}"/><ellipse cx="148" cy="82" rx="14" ry="18" fill="${c('hm_Shoulders')}"/></g>
+    <g><rect x="82" y="112" width="14" height="12" rx="3" fill="${c('hm_Abs')}"/><rect x="104" y="112" width="14" height="12" rx="3" fill="${c('hm_Abs')}"/><rect x="82" y="128" width="14" height="12" rx="3" fill="${c('hm_Abs')}"/><rect x="104" y="128" width="14" height="12" rx="3" fill="${c('hm_Abs')}"/><rect x="82" y="144" width="14" height="12" rx="3" fill="${c('hm_Abs')}"/><rect x="104" y="144" width="14" height="12" rx="3" fill="${c('hm_Abs')}"/></g>
+    <g><rect x="30" y="100" width="16" height="42" rx="8" fill="${c('hm_Biceps')}"/><rect x="154" y="100" width="16" height="42" rx="8" fill="${c('hm_Biceps')}"/></g>
+    <g><rect x="22" y="146" width="14" height="46" rx="7" fill="${c('hm_Forearms')}"/><rect x="164" y="146" width="14" height="46" rx="7" fill="${c('hm_Forearms')}"/></g>
+    <rect x="60" y="158" width="80" height="22" rx="6" fill="#222"/>
+    <g><rect x="62" y="182" width="34" height="72" rx="10" fill="${c('hm_Quadriceps')}"/><rect x="104" y="182" width="34" height="72" rx="10" fill="${c('hm_Quadriceps')}"/></g>
+    <g><rect x="66" y="262" width="26" height="60" rx="10" fill="${c('hm_Calves')}"/><rect x="108" y="262" width="26" height="60" rx="10" fill="${c('hm_Calves')}"/></g>
+  </svg>`;
+
+  const backSVG = `<svg viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+    <ellipse cx="100" cy="30" rx="22" ry="26" fill="#3a3a3a"/>
+    <rect x="91" y="54" width="18" height="14" fill="#3a3a3a"/>
+    <rect x="60" y="68" width="80" height="90" rx="8" fill="#222"/>
+    <g><polygon points="100,68 70,68 80,90" fill="${c('hm_Traps')}"/><polygon points="100,68 130,68 120,90" fill="${c('hm_Traps')}"/></g>
+    <g><ellipse cx="52" cy="82" rx="14" ry="18" fill="${c('hm_Shoulders')}"/><ellipse cx="148" cy="82" rx="14" ry="18" fill="${c('hm_Shoulders')}"/></g>
+    <g><polygon points="60,90 60,155 90,130 82,90" fill="${c('hm_Lats')}"/><polygon points="140,90 140,155 110,130 118,90" fill="${c('hm_Lats')}"/></g>
+    <g><rect x="80" y="128" width="40" height="28" rx="5" fill="${c('hm_Lower_Back')}"/></g>
+    <g><rect x="30" y="100" width="16" height="42" rx="8" fill="${c('hm_Triceps')}"/><rect x="154" y="100" width="16" height="42" rx="8" fill="${c('hm_Triceps')}"/></g>
+    <g><rect x="22" y="146" width="14" height="46" rx="7" fill="${c('hm_Forearms')}"/><rect x="164" y="146" width="14" height="46" rx="7" fill="${c('hm_Forearms')}"/></g>
+    <g><ellipse cx="83" cy="178" rx="22" ry="18" fill="${c('hm_Glutes')}"/><ellipse cx="117" cy="178" rx="22" ry="18" fill="${c('hm_Glutes')}"/></g>
+    <g><rect x="62" y="198" width="34" height="62" rx="10" fill="${c('hm_Hamstrings')}"/><rect x="104" y="198" width="34" height="62" rx="10" fill="${c('hm_Hamstrings')}"/></g>
+    <g><rect x="66" y="264" width="26" height="58" rx="10" fill="${c('hm_Calves')}"/><rect x="108" y="264" width="26" height="58" rx="10" fill="${c('hm_Calves')}"/></g>
+  </svg>`;
+
+  // Build and show modal
+  const existing = document.getElementById('muscleDist'); if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'muscleDist';
+  modal.className = 'mdModal';
+  modal.innerHTML = `
+    <div class="mdBox">
+      <div class="mdHeader">
+        <div class="mdTitle">Muscle Distribution</div>
+        <button class="mdClose" onclick="document.getElementById('muscleDist').remove()">✕</button>
+      </div>
+      <div class="mdExName">${exercise}</div>
+      <div class="mdBodyMaps">
+        <div class="mdBodyWrap">${frontSVG}</div>
+        <div class="mdBodyWrap">${backSVG}</div>
+      </div>
+      <div class="mdLegend">
+        <div class="mdLegendItem"><div class="mdLegendDot" style="background:#00aaff"></div>Primary</div>
+        <div class="mdLegendItem"><div class="mdLegendDot" style="background:#0066bb"></div>Secondary</div>
+      </div>
+      <div class="mdTableHeader"><span>Muscle</span><span>Completed Sets</span></div>
+      <div class="mdBars">${barsHTML}</div>
+      <button class="mdDoneBtn" onclick="document.getElementById('muscleDist').remove()">Done</button>
+    </div>`;
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add('open'));
 }
