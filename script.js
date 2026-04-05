@@ -3,19 +3,135 @@ const API = 'https://gymbuddy-backend-wsn1.onrender.com/api';
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const EXERCISES = {
-  Chest:['Bench Press','Incline Bench Press','Decline Bench Press','Cable Fly','Dumbbell Fly','Push-Up','Chest Dip'],
+  Chest:['Bench Press','Incline Bench Press','Flat Dumbbell Press','Incline Dumbbell Press','Decline Bench Press','Cable Fly','Dumbbell Fly','Push-Up','Chest Dip'],
   Shoulders:['Overhead Press','Lateral Raise','Front Raise','Arnold Press','Face Pull','Upright Row','Cable Lateral Raise'],
-  Biceps:['Barbell Curl','Dumbbell Curl','Hammer Curl','Preacher Curl','Cable Curl','Concentration Curl','Chin-Up'],
+  Biceps:['Barbell Curl','EZ Curl','Dumbbell Curl','Hammer Curl','Preacher Curl','Cable Curl','Bayesian Curl','Concentration Curl','Chin-Up'],
   Triceps:['Tricep Pushdown','Skull Crusher','Close-Grip Bench','Overhead Tricep Extension','Dips','Diamond Push-Up','Kickback'],
   Abs:['Crunch','Plank','Leg Raise','Cable Crunch','Russian Twist','Hanging Knee Raise','Ab Rollout'],
   Forearms:['Wrist Curl','Reverse Wrist Curl','Hammer Curl','Farmer\'s Walk','Dead Hang','Reverse Curl'],
-  Lats:['Pull-Up','Lat Pulldown','Seated Row','Dumbbell Row','T-Bar Row','Straight-Arm Pulldown'],
+  Lats:['Pull-Up','Lat Pulldown','Seated Row','Dumbbell Row','Barbell Row','T-Bar Row','Straight-Arm Pulldown'],
   Traps:['Shrug','Barbell Shrug','Dumbbell Shrug','Face Pull','Rack Pull','Upright Row'],
   'Lower Back':['Deadlift','Romanian Deadlift','Hyperextension','Good Morning','Cable Pull-Through'],
   Quadriceps:['Squat','Leg Press','Leg Extension','Lunges','Hack Squat','Bulgarian Split Squat'],
-  Hamstrings:['Romanian Deadlift','Leg Curl','Nordic Curl','Stiff-Leg Deadlift','Glute-Ham Raise','Good Morning'],
+  Hamstrings:['Romanian Deadlift','Leg Curl','Lying Leg Curl','Nordic Curl','Stiff-Leg Deadlift','Glute-Ham Raise','Good Morning'],
   Glutes:['Hip Thrust','Glute Bridge','Cable Kickback','Sumo Squat','Step-Up','Donkey Kick'],
   Calves:['Calf Raise','Seated Calf Raise','Leg Press Calf Raise','Jump Rope','Donkey Calf Raise']
+};
+
+const EXERCISE_PROFILES = {
+  Chest: {
+    'Bench Press': { role: 'compound', focus: 'mid-chest' },
+    'Incline Bench Press': { role: 'compound', focus: 'upper-chest' },
+    'Flat Dumbbell Press': { role: 'compound', focus: 'mid-chest' },
+    'Incline Dumbbell Press': { role: 'compound', focus: 'upper-chest' },
+    'Decline Bench Press': { role: 'compound', focus: 'lower-chest' },
+    'Cable Fly': { role: 'stretch', focus: 'inner-chest' },
+    'Dumbbell Fly': { role: 'stretch', focus: 'outer-chest' },
+    'Push-Up': { role: 'compound', focus: 'mid-chest' },
+    'Chest Dip': { role: 'isolation', focus: 'lower-chest' }
+  },
+  Shoulders: {
+    'Overhead Press': { role: 'compound', focus: 'front-delts' },
+    'Lateral Raise': { role: 'isolation', focus: 'side-delts' },
+    'Front Raise': { role: 'isolation', focus: 'front-delts' },
+    'Arnold Press': { role: 'compound', focus: 'front-side-delts' },
+    'Face Pull': { role: 'stretch', focus: 'rear-delts' },
+    'Upright Row': { role: 'compound', focus: 'upper-delts' },
+    'Cable Lateral Raise': { role: 'stretch', focus: 'side-delts' }
+  },
+  Biceps: {
+    'Barbell Curl': { role: 'compound', focus: 'overall-biceps' },
+    'EZ Curl': { role: 'compound', focus: 'overall-biceps' },
+    'Dumbbell Curl': { role: 'compound', focus: 'mid-biceps' },
+    'Hammer Curl': { role: 'isolation', focus: 'brachialis' },
+    'Preacher Curl': { role: 'isolation', focus: 'short-head' },
+    'Cable Curl': { role: 'stretch', focus: 'constant-tension' },
+    'Bayesian Curl': { role: 'stretch', focus: 'long-head' },
+    'Concentration Curl': { role: 'isolation', focus: 'peak-contraction' },
+    'Chin-Up': { role: 'compound', focus: 'overall-biceps' }
+  },
+  Triceps: {
+    'Tricep Pushdown': { role: 'isolation', focus: 'lateral-head' },
+    'Skull Crusher': { role: 'stretch', focus: 'long-head' },
+    'Close-Grip Bench': { role: 'compound', focus: 'overall-triceps' },
+    'Overhead Tricep Extension': { role: 'stretch', focus: 'long-head' },
+    'Dips': { role: 'compound', focus: 'lower-triceps' },
+    'Diamond Push-Up': { role: 'compound', focus: 'overall-triceps' },
+    'Kickback': { role: 'isolation', focus: 'peak-lockout' }
+  },
+  Abs: {
+    'Crunch': { role: 'isolation', focus: 'upper-abs' },
+    'Plank': { role: 'compound', focus: 'core-stability' },
+    'Leg Raise': { role: 'stretch', focus: 'lower-abs' },
+    'Cable Crunch': { role: 'compound', focus: 'upper-abs' },
+    'Russian Twist': { role: 'isolation', focus: 'obliques' },
+    'Hanging Knee Raise': { role: 'stretch', focus: 'lower-abs' },
+    'Ab Rollout': { role: 'compound', focus: 'full-core' }
+  },
+  Forearms: {
+    'Wrist Curl': { role: 'isolation', focus: 'flexors' },
+    'Reverse Wrist Curl': { role: 'isolation', focus: 'extensors' },
+    'Hammer Curl': { role: 'compound', focus: 'brachioradialis' },
+    'Farmer\'s Walk': { role: 'compound', focus: 'grip' },
+    'Dead Hang': { role: 'stretch', focus: 'grip' },
+    'Reverse Curl': { role: 'stretch', focus: 'upper-forearm' }
+  },
+  Lats: {
+    'Pull-Up': { role: 'compound', focus: 'upper-lats' },
+    'Lat Pulldown': { role: 'stretch', focus: 'upper-lats' },
+    'Seated Row': { role: 'isolation', focus: 'mid-back' },
+    'Dumbbell Row': { role: 'compound', focus: 'mid-lats' },
+    'Barbell Row': { role: 'compound', focus: 'mid-back' },
+    'T-Bar Row': { role: 'compound', focus: 'lower-lats' },
+    'Straight-Arm Pulldown': { role: 'stretch', focus: 'lower-lats' }
+  },
+  Traps: {
+    'Shrug': { role: 'isolation', focus: 'upper-traps' },
+    'Barbell Shrug': { role: 'compound', focus: 'upper-traps' },
+    'Dumbbell Shrug': { role: 'isolation', focus: 'upper-traps' },
+    'Face Pull': { role: 'stretch', focus: 'mid-traps' },
+    'Rack Pull': { role: 'compound', focus: 'upper-traps' },
+    'Upright Row': { role: 'compound', focus: 'upper-traps' }
+  },
+  'Lower Back': {
+    'Deadlift': { role: 'compound', focus: 'spinal-erectors' },
+    'Romanian Deadlift': { role: 'stretch', focus: 'hip-hinge' },
+    'Hyperextension': { role: 'isolation', focus: 'erectors' },
+    'Good Morning': { role: 'stretch', focus: 'erectors' },
+    'Cable Pull-Through': { role: 'isolation', focus: 'lower-back-glute-link' }
+  },
+  Quadriceps: {
+    'Squat': { role: 'compound', focus: 'overall-quads' },
+    'Leg Press': { role: 'compound', focus: 'mid-quads' },
+    'Leg Extension': { role: 'isolation', focus: 'rectus-femoris' },
+    'Lunges': { role: 'stretch', focus: 'single-leg-quads' },
+    'Hack Squat': { role: 'compound', focus: 'outer-quads' },
+    'Bulgarian Split Squat': { role: 'stretch', focus: 'single-leg-quads' }
+  },
+  Hamstrings: {
+    'Romanian Deadlift': { role: 'stretch', focus: 'hip-hinge-hams' },
+    'Leg Curl': { role: 'isolation', focus: 'mid-hamstrings' },
+    'Lying Leg Curl': { role: 'isolation', focus: 'shortened-hams' },
+    'Nordic Curl': { role: 'compound', focus: 'full-hamstrings' },
+    'Stiff-Leg Deadlift': { role: 'stretch', focus: 'lengthened-hams' },
+    'Glute-Ham Raise': { role: 'compound', focus: 'full-hamstrings' },
+    'Good Morning': { role: 'compound', focus: 'posterior-chain' }
+  },
+  Glutes: {
+    'Hip Thrust': { role: 'compound', focus: 'upper-glutes' },
+    'Glute Bridge': { role: 'isolation', focus: 'mid-glutes' },
+    'Cable Kickback': { role: 'isolation', focus: 'glute-max' },
+    'Sumo Squat': { role: 'compound', focus: 'inner-glutes' },
+    'Step-Up': { role: 'stretch', focus: 'single-leg-glutes' },
+    'Donkey Kick': { role: 'stretch', focus: 'glute-max' }
+  },
+  Calves: {
+    'Calf Raise': { role: 'compound', focus: 'gastrocnemius' },
+    'Seated Calf Raise': { role: 'isolation', focus: 'soleus' },
+    'Leg Press Calf Raise': { role: 'stretch', focus: 'lengthened-calves' },
+    'Jump Rope': { role: 'compound', focus: 'reactive-calves' },
+    'Donkey Calf Raise': { role: 'stretch', focus: 'upper-calves' }
+  }
 };
 
 const MUSCLE_COLORS = ['#2a2a2a','#1a5c2a','#27ae60','#2ecc71'];
@@ -24,6 +140,7 @@ let currentUser = null, isRegister = false, token = null;
 let currentMuscle = '', currentExercise = '', currentSets = [];
 let progressChart = null, allSessions = [];
 let myFollowCounts = { followersCount: 0, followingCount: 0 };
+let sheroFocusMuscle = '';
 
 // ─── CALENDAR STATE ───────────────────────────────────────────────────────────
 let calYear, calMonth;
@@ -144,6 +261,45 @@ const MUSCLE_THRESHOLDS = {
   'Glutes':      [6,  8],
   'Calves':      [4,  5],
 };
+
+function getDateWeekKey(date) {
+  const mon = new Date(date);
+  mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+  mon.setHours(0, 0, 0, 0);
+  return mon.toLocaleDateString('en-CA');
+}
+
+function getFullBodyWeekProgress() {
+  const weeks = {};
+  allSessions.forEach(s => {
+    const key = getDateWeekKey(new Date(s.date));
+    weeks[key] = weeks[key] || {};
+    weeks[key][s.muscle] = (weeks[key][s.muscle] || 0) + s.sets.length;
+  });
+
+  const weekKeys = Object.keys(weeks).sort();
+  let bestStreak = 0;
+  let streak = 0;
+  const muscles = Object.keys(EXERCISES);
+
+  weekKeys.forEach(key => {
+    const counts = weeks[key];
+    const weekValid = muscles.every(muscle => {
+      const sets = counts[muscle] || 0;
+      const yellowMin = (MUSCLE_THRESHOLDS[muscle] || [5])[0];
+      return sets >= yellowMin;
+    });
+
+    if (weekValid) {
+      streak += 1;
+    } else {
+      streak = 0;
+    }
+    bestStreak = Math.max(bestStreak, streak);
+  });
+
+  return { cur: Math.min(bestStreak, 2), max: 2 };
+}
 
 function updateHeatmap() {
   // Only count SETS from current week (Monday to Sunday)
@@ -349,75 +505,309 @@ function getWeeklyMuscleSetCounts() {
   return counts;
 }
 
+function getCurrentWeekSessions() {
+  const { monday, sunday } = getCurrentWeekWindow();
+  return allSessions
+    .filter(session => {
+      const date = new Date(session.date);
+      return date >= monday && date <= sunday;
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+function getRecentSessions(days = 3) {
+  const cutoff = new Date();
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setDate(cutoff.getDate() - (days - 1));
+  return allSessions
+    .filter(session => new Date(session.date) >= cutoff)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+function getRecentMuscleSetCounts(days = 3) {
+  const counts = {};
+  getRecentSessions(days).forEach(session => {
+    counts[session.muscle] = (counts[session.muscle] || 0) + session.sets.length;
+  });
+  return counts;
+}
+
+function getLastSessionForMuscle(muscle) {
+  return allSessions
+    .filter(session => session.muscle === muscle)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))[0] || null;
+}
+
+function getDaysSince(dateValue) {
+  const target = new Date(dateValue);
+  target.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((today - target) / 86400000);
+}
+
+function getMuscleCluster(muscle) {
+  if (['Quadriceps', 'Hamstrings', 'Glutes', 'Calves'].includes(muscle)) return 'lower';
+  if (['Chest', 'Shoulders', 'Triceps'].includes(muscle)) return 'push';
+  if (['Lats', 'Traps', 'Lower Back', 'Biceps', 'Forearms'].includes(muscle)) return 'pull';
+  if (muscle === 'Abs') return 'core';
+  return 'other';
+}
+
+function getClusterSetTotal(counts, cluster) {
+  return Object.keys(EXERCISES)
+    .filter(muscle => getMuscleCluster(muscle) === cluster)
+    .reduce((sum, muscle) => sum + (counts[muscle] || 0), 0);
+}
+
+function getSuggestedCluster(clusterTotals, excludeCluster) {
+  const order = ['push', 'pull', 'lower', 'core'];
+  return order
+    .filter(cluster => cluster !== excludeCluster)
+    .sort((a, b) => (clusterTotals[a] || 0) - (clusterTotals[b] || 0))[0];
+}
+
+function getClusterLabel(cluster) {
+  const labels = {
+    push: 'push',
+    pull: 'pull',
+    lower: 'legs',
+    core: 'core'
+  };
+  return labels[cluster] || cluster;
+}
+
+function getExerciseUsageStats(muscle) {
+  const usage = {};
+  allSessions
+    .filter(session => session.muscle === muscle)
+    .forEach(session => {
+      if (!usage[session.exercise]) usage[session.exercise] = { count: 0, lastUsed: 0 };
+      usage[session.exercise].count += 1;
+      usage[session.exercise].lastUsed = Math.max(usage[session.exercise].lastUsed, new Date(session.date).getTime());
+    });
+  return usage;
+}
+
+function getExerciseProfile(muscle, exercise) {
+  return EXERCISE_PROFILES[muscle]?.[exercise] || { role: 'isolation', focus: exercise.toLowerCase() };
+}
+
+function scoreExerciseCandidate(candidate, picked, requireRare) {
+  const duplicateFocusPenalty = picked.some(item => item.focus === candidate.focus) ? 12 : 0;
+  const familyPenalty = picked.some(item => item.focus.split('-')[0] === candidate.focus.split('-')[0]) ? 4 : 0;
+  const rarityBonus = candidate.isRare ? 18 : 0;
+  const neverUsedBonus = candidate.usageCount === 0 ? 12 : 0;
+  const recencyBonus = candidate.lastUsed === 0 ? 6 : Math.min(Math.floor((Date.now() - candidate.lastUsed) / 86400000), 14);
+  const usageBonus = Math.max(0, 6 - candidate.usageCount);
+  const requiredRareBoost = requireRare && candidate.isRare ? 14 : 0;
+  return rarityBonus + neverUsedBonus + recencyBonus + usageBonus + requiredRareBoost - duplicateFocusPenalty - familyPenalty;
+}
+
+function pickCandidateForRole(candidates, role, picked, requireRare) {
+  const matching = candidates.filter(candidate => candidate.role === role && !picked.includes(candidate.name));
+  const pool = matching.length ? matching : candidates.filter(candidate => !picked.includes(candidate.name));
+  if (!pool.length) return null;
+  return [...pool].sort((a, b) => scoreExerciseCandidate(b, picked.map(name => candidates.find(item => item.name === name) || { focus: '' }), requireRare) - scoreExerciseCandidate(a, picked.map(name => candidates.find(item => item.name === name) || { focus: '' }), requireRare))[0];
+}
+
+function getRecommendedExercisesForMuscle(muscle) {
+  const pool = EXERCISES[muscle] || [];
+  const usage = getExerciseUsageStats(muscle);
+  const usageCounts = pool.map(exercise => usage[exercise]?.count || 0);
+  const minUsage = usageCounts.length ? Math.min(...usageCounts) : 0;
+  const candidates = pool.map(name => {
+    const profile = getExerciseProfile(muscle, name);
+    const stats = usage[name] || { count: 0, lastUsed: 0 };
+    return {
+      name,
+      role: profile.role,
+      focus: profile.focus,
+      usageCount: stats.count,
+      lastUsed: stats.lastUsed,
+      isRare: stats.count === 0 || stats.count === minUsage
+    };
+  });
+
+  const pickedNames = [];
+  const roles = ['compound', 'stretch', 'isolation'];
+  roles.forEach((role, index) => {
+    const alreadyHasRare = pickedNames.some(name => candidates.find(candidate => candidate.name === name)?.isRare);
+    const candidate = pickCandidateForRole(candidates, role, pickedNames, index === roles.length - 1 && !alreadyHasRare);
+    if (candidate) pickedNames.push(candidate.name);
+  });
+
+  if (pickedNames.length < 3) {
+    const remaining = candidates
+      .filter(candidate => !pickedNames.includes(candidate.name))
+      .sort((a, b) => scoreExerciseCandidate(b, pickedNames.map(name => candidates.find(item => item.name === name) || { focus: '' }), false) - scoreExerciseCandidate(a, pickedNames.map(name => candidates.find(item => item.name === name) || { focus: '' }), false));
+    remaining.slice(0, 3 - pickedNames.length).forEach(candidate => pickedNames.push(candidate.name));
+  }
+
+  const hasRarePick = pickedNames.some(name => candidates.find(candidate => candidate.name === name)?.isRare);
+  if (!hasRarePick) {
+    const rareCandidate = candidates
+      .filter(candidate => candidate.isRare && !pickedNames.includes(candidate.name))
+      .sort((a, b) => scoreExerciseCandidate(b, pickedNames.map(name => candidates.find(item => item.name === name) || { focus: '' }), true) - scoreExerciseCandidate(a, pickedNames.map(name => candidates.find(item => item.name === name) || { focus: '' }), true))[0];
+    if (rareCandidate) pickedNames[pickedNames.length - 1] = rareCandidate.name;
+  }
+
+  return pickedNames.slice(0, 3);
+}
+
+function renderSheroQuickPick(muscle = sheroFocusMuscle) {
+  const el = document.getElementById('sheroQuickPick');
+  if (!el) return;
+  if (!muscle || !EXERCISES[muscle]) {
+    el.innerHTML = '<strong>Shero picks</strong>Tap a muscle and Shero will surface 3 exercises to start with.';
+    return;
+  }
+  const picks = getRecommendedExercisesForMuscle(muscle);
+  el.innerHTML = `<strong>Shero picks for ${muscle}</strong>${picks.join(' · ')}`;
+}
+
 function getSheroMessage(mode = 'suggest') {
   const counts = getWeeklyMuscleSetCounts();
+  const weekSessions = getCurrentWeekSessions();
+  const recentCounts = getRecentMuscleSetCounts(3);
   const streak = getStreak();
   const restDays = getRestDays().length;
-  const trained = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  const topMuscle = trained[0];
-  const lowMuscles = Object.keys(EXERCISES).filter(muscle => (counts[muscle] || 0) === 0);
   const latest = allSessions.length
     ? [...allSessions].sort((a, b) => new Date(b.date) - new Date(a.date))[0]
     : null;
+  const latestCluster = latest ? getMuscleCluster(latest.muscle) : null;
+  const latestDaysAgo = latest ? getDaysSince(latest.date) : null;
+  const lowerRecent = getClusterSetTotal(recentCounts, 'lower');
+  const clusterTotals = {
+    push: getClusterSetTotal(counts, 'push'),
+    pull: getClusterSetTotal(counts, 'pull'),
+    lower: getClusterSetTotal(counts, 'lower'),
+    core: getClusterSetTotal(counts, 'core')
+  };
+  const recentTrainingLoad = Object.values(recentCounts).reduce((sum, value) => sum + value, 0);
+  const weeklyCoverageSolid = clusterTotals.push >= 12 && clusterTotals.pull >= 12 && clusterTotals.lower >= 10;
 
   if (mode === 'feedback') {
-    if (!allSessions.length) {
+    if (!weekSessions.length) {
       return {
-        mood: 'Warm-Up',
-        text: 'No sessions yet. Tap a muscle on the body map and I will start giving you real training feedback.'
+        mood: 'Feedback',
+        text: 'No sessions logged this week yet.'
       };
     }
-    if (topMuscle && topMuscle[1] >= 12) {
+    const weekDays = [...new Set(weekSessions.map(session => new Date(session.date).toLocaleDateString('en-CA')))];
+    const weekSetTotal = weekSessions.reduce((sum, session) => sum + session.sets.length, 0);
+    const trainedMuscles = [...new Set(weekSessions.map(session => session.muscle))];
+    const focusClusters = ['push', 'pull', 'lower']
+      .filter(cluster => clusterTotals[cluster] > 0)
+      .map(cluster => getClusterLabel(cluster));
+
+    if (weekDays.length === 1) {
+      const firstDayMuscles = [...new Set(weekSessions
+        .filter(session => new Date(session.date).toLocaleDateString('en-CA') === weekDays[0])
+        .map(session => session.muscle))];
       return {
-        mood: 'Recovery Check',
-        text: `${topMuscle[0]} is carrying a lot of volume this week at ${topMuscle[1]} sets. Keep the next session lighter or shift focus to another group.`
+        mood: 'Feedback',
+        text: `Week day 1: ${weekSetTotal} total sets on ${firstDayMuscles.join(', ')}. Strong start.`
       };
     }
-    if (streak >= 4) {
+
+    if (weekDays.length === 2) {
+      const missingClusters = ['push', 'pull', 'lower']
+        .filter(cluster => clusterTotals[cluster] === 0)
+        .map(cluster => getClusterLabel(cluster));
       return {
-        mood: 'Momentum',
-        text: `You are on a ${streak}-day streak. Great consistency. Protect recovery tonight so the streak stays productive, not just long.`
+        mood: 'Feedback',
+        text: missingClusters.length
+          ? `First 2 days: ${weekSetTotal} total sets across ${trainedMuscles.length} muscles. Nice start, add ${missingClusters.join(' or ')} next.`
+          : `First 2 days: ${weekSetTotal} total sets across ${trainedMuscles.length} muscles. Good balance so far.`
       };
     }
-    if (latest) {
+
+    if (weeklyCoverageSolid) {
       return {
-        mood: 'Session Read',
-        text: `Your latest work hit ${latest.muscle} with ${latest.sets.length} sets on ${latest.exercise}. Nice session. Balance it with an opposite movement next.`
+        mood: 'Feedback',
+        text: `This week: ${weekSetTotal} total sets across ${weekDays.length} days. Push, pull, and legs are all well covered.`
       };
     }
+
+    const lowClusters = ['push', 'pull', 'lower']
+      .filter(cluster => clusterTotals[cluster] === 0)
+      .map(cluster => getClusterLabel(cluster));
+
     return {
-      mood: 'Balance',
-      text: 'You have some movement this week. Keep alternating muscle groups so volume stays balanced across the body map.'
+      mood: 'Feedback',
+      text: lowClusters.length
+        ? `This week so far: ${weekSetTotal} total sets across ${weekDays.length} days. You have covered ${focusClusters.join(', ') || 'part of the week'}; add ${lowClusters.join(' and ')} to round it out.`
+        : `This week so far: ${weekSetTotal} total sets across ${weekDays.length} days. Solid progress, keep building the week evenly.`
     };
   }
 
   if (!allSessions.length) {
     return {
-      mood: 'Coach Mode',
-      text: 'Start with a simple push day. Tap Chest, Shoulders, or Triceps and log 3 to 4 quality working sets.'
+      mood: 'Suggestion',
+      text: 'Start with a push session.'
     };
   }
-  if (lowMuscles.includes('Quadriceps') || lowMuscles.includes('Hamstrings')) {
+  if (latest && latestDaysAgo === 0 && latest.sets.length >= 8) {
     return {
       mood: 'Suggestion',
-      text: 'Lower body is still open this week. Shero suggests a leg session next so your training stays balanced.'
+      text: 'Rest today.'
     };
   }
-  if (lowMuscles.length) {
+  if (streak >= 5 && restDays === 0) {
     return {
       mood: 'Suggestion',
-      text: `You have not touched ${lowMuscles[0]} this week. That is your cleanest next target if you want more complete coverage.`
+      text: 'Take a rest day.'
+    };
+  }
+  if (weeklyCoverageSolid && (recentTrainingLoad >= 12 || (latestDaysAgo !== null && latestDaysAgo <= 1))) {
+    return {
+      mood: 'Suggestion',
+      text: 'Rest and recover.'
+    };
+  }
+  if (latest && latestDaysAgo <= 1 && lowerRecent >= 8) {
+    return {
+      mood: 'Suggestion',
+      text: 'Do upper body next.'
     };
   }
   if (restDays >= 2) {
     return {
-      mood: 'Restart',
-      text: 'You have logged a couple of rest days. Ease back in with a moderate session instead of trying to make up for everything at once.'
+      mood: 'Suggestion',
+      text: 'Come back with a moderate session.'
     };
   }
+  if (latestCluster === 'push') {
+    return {
+      mood: 'Suggestion',
+      text: 'Train pull next.'
+    };
+  }
+  if (latestCluster === 'pull') {
+    return {
+      mood: 'Suggestion',
+      text: 'Train push next.'
+    };
+  }
+  if (latestCluster === 'lower') {
+    const nextUpperCluster = (clusterTotals.push || 0) <= (clusterTotals.pull || 0) ? 'push' : 'pull';
+    return {
+      mood: 'Suggestion',
+      text: `Train ${getClusterLabel(nextUpperCluster)} next.`
+    };
+  }
+  if (latestCluster === 'core') {
+    const nextCluster = getSuggestedCluster(clusterTotals, 'core');
+    return {
+      mood: 'Suggestion',
+      text: `Train ${getClusterLabel(nextCluster)} next.`
+    };
+  }
+  const nextCluster = getSuggestedCluster(clusterTotals);
   return {
-    mood: 'Dialed In',
-    text: 'Your week looks nicely distributed. If energy is good today, pick the muscle that feels freshest and push for quality reps.'
+    mood: 'Suggestion',
+    text: `Train ${getClusterLabel(nextCluster)} next.`
   };
 }
 
@@ -453,8 +843,9 @@ function renderShero() {
     iconBtn.classList.add('off');
     suggestBlock.classList.remove('hidden');
     feedbackBlock.classList.add('hidden');
-    suggestMoodEl.textContent = 'Shero Off';
+    suggestMoodEl.textContent = 'Suggestion';
     suggestTextEl.textContent = 'No active Shero messages. Tap the bulb again whenever you want new tips.';
+    renderSheroQuickPick();
     return;
   }
 
@@ -463,10 +854,11 @@ function renderShero() {
   iconBtn.classList.remove('off');
   suggestBlock.classList.remove('hidden');
   feedbackBlock.classList.remove('hidden');
-  suggestMoodEl.textContent = suggestMessage.mood;
+  suggestMoodEl.textContent = 'Suggestion';
   suggestTextEl.textContent = suggestMessage.text;
-  feedbackMoodEl.textContent = feedbackMessage.mood;
+  feedbackMoodEl.textContent = 'Feedback';
   feedbackTextEl.textContent = feedbackMessage.text;
+  renderSheroQuickPick();
 }
 
 function initShero() {
@@ -496,7 +888,10 @@ function initShero() {
 
 function openMuscle(muscle) {
   currentMuscle = muscle; currentExercise = ''; currentSets = [];
+  sheroFocusMuscle = muscle;
   document.getElementById('muscleLabel').textContent = 'Selected: ' + muscle;
+  renderSheroQuickPick(muscle);
+  if (!isSheroCleared()) renderShero();
   document.getElementById('modalMuscle').textContent = muscle;
   document.getElementById('modalDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const list = document.getElementById('exerciseList');
@@ -582,7 +977,6 @@ async function saveWorkout() {
     updateHeatmap();
     updateStreak();
     closeModal();
-    showMuscleDistribution(currentMuscle, currentExercise, validSets.length);
   } catch (err) {
     hideLoading();
     alert('Failed to save workout. Is the server running?');
@@ -689,9 +1083,10 @@ function showHistoryDay(dateKey, sessions) {
   if (allDays[dayNum - 1]) allDays[dayNum - 1].classList.add('selectedDay');
   const detail = document.getElementById('historyDayDetail');
   const dateLabel = d.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const sortedSessions = [...sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
   detail.innerHTML = `
     <div class="histDayHeader">${dateLabel}</div>
-    ${sessions.map(s => `
+    ${sortedSessions.map(s => `
       <div class="sessionCard" id="session_${s._id}">
         <div class="sDateRow">
           <div class="sDate">${new Date(s.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
@@ -896,13 +1291,53 @@ function getFreezeDays() {
   return JSON.parse(localStorage.getItem('freezeDays_' + currentUser) || '[]');
 }
 
+function getFreezeBalance() {
+  const key = 'freezeBalance_' + currentUser;
+  const raw = localStorage.getItem(key);
+  if (raw === null) {
+    localStorage.setItem(key, '1');
+    return 1;
+  }
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 1;
+}
+
+function setFreezeBalance(value) {
+  localStorage.setItem('freezeBalance_' + currentUser, String(Math.max(0, value)));
+}
+
+function getFreezeRewardMilestones() {
+  return JSON.parse(localStorage.getItem('freezeMilestones_' + currentUser) || '[]');
+}
+
+function setFreezeRewardMilestones(milestones) {
+  localStorage.setItem('freezeMilestones_' + currentUser, JSON.stringify(milestones));
+}
+
+function syncFreezeRewards() {
+  if (!currentUser) return [];
+  const streak = getStreak();
+  const lastTracked = parseInt(localStorage.getItem('freezeLastTrackedStreak_' + currentUser) || '0', 10) || 0;
+  let claimed = getFreezeRewardMilestones();
+
+  if (streak < lastTracked) claimed = [];
+
+  const earned = [];
+  for (let milestone = 30; milestone <= streak; milestone += 30) {
+    if (!claimed.includes(milestone)) {
+      claimed.push(milestone);
+      earned.push(milestone);
+    }
+  }
+
+  if (earned.length) setFreezeBalance(getFreezeBalance() + earned.length);
+  setFreezeRewardMilestones(claimed);
+  localStorage.setItem('freezeLastTrackedStreak_' + currentUser, String(streak));
+  return earned;
+}
+
 function getFreezeTokens() {
-  // Only count freeze days that don't also have a workout logged
-  // (if user logs workout on a frozen day, that freeze is void)
-  const freezeDays = getFreezeDays();
-  const workoutDays = new Set(allSessions.map(s => new Date(s.date).toLocaleDateString('en-CA')));
-  const validFreezes = freezeDays.filter(d => !workoutDays.has(d));
-  return Math.max(0, 2 - validFreezes.length);
+  return getFreezeBalance();
 }
 
 function useFreeze() {
@@ -947,12 +1382,12 @@ function showFreezeModal(canFreezeToday, canFreezeYesterday, today, yesterdayKey
       <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:#FFD700;margin-bottom:6px">STREAK FREEZE</div>
       <div style="font-size:.78rem;color:#666;letter-spacing:1px;margin-bottom:20px;text-transform:uppercase">Which day do you want to freeze?</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
-        <button onclick="applyFreeze('${today}',${tokens})" ${!canFreezeToday ? 'disabled' : ''}
+        <button onclick="applyFreeze('${today}')" ${!canFreezeToday ? 'disabled' : ''}
           style="padding:12px;border-radius:8px;border:1px solid ${canFreezeToday ? '#C9A84C' : '#333'};background:${canFreezeToday ? 'rgba(201,168,76,0.1)' : '#0a0a0a'};color:${canFreezeToday ? '#FFD700' : '#444'};cursor:${canFreezeToday ? 'pointer' : 'not-allowed'};font-family:'Inter',sans-serif;font-size:.88rem;font-weight:600;">
           Today &nbsp;·&nbsp; ${todayDate}
           ${!canFreezeToday ? '<br><span style="font-size:.7rem;color:#555">Already has activity</span>' : ''}
         </button>
-        <button onclick="applyFreeze('${yesterdayKey}',${tokens})" ${!canFreezeYesterday ? 'disabled' : ''}
+        <button onclick="applyFreeze('${yesterdayKey}')" ${!canFreezeYesterday ? 'disabled' : ''}
           style="padding:12px;border-radius:8px;border:1px solid ${canFreezeYesterday ? '#C9A84C' : '#333'};background:${canFreezeYesterday ? 'rgba(201,168,76,0.1)' : '#0a0a0a'};color:${canFreezeYesterday ? '#FFD700' : '#444'};cursor:${canFreezeYesterday ? 'pointer' : 'not-allowed'};font-family:'Inter',sans-serif;font-size:.88rem;font-weight:600;">
           Yesterday &nbsp;·&nbsp; ${yestDate}
           ${!canFreezeYesterday ? '<br><span style="font-size:.7rem;color:#555">Already has activity</span>' : ''}
@@ -962,12 +1397,12 @@ function showFreezeModal(canFreezeToday, canFreezeYesterday, today, yesterdayKey
         style="background:none;border:1px solid #333;color:#666;padding:8px 20px;border-radius:20px;cursor:pointer;font-family:'Inter',sans-serif;font-size:.78rem;">
         Cancel
       </button>
-      <div style="margin-top:14px;font-size:.7rem;color:#444;letter-spacing:1px">${tokens} of 2 tokens remaining</div>
+      <div style="margin-top:14px;font-size:.7rem;color:#444;letter-spacing:1px">${tokens} freeze token${tokens !== 1 ? 's' : ''} available</div>
     </div>`;
   document.body.appendChild(modal);
 }
 
-function applyFreeze(dateKey, tokens) {
+function applyFreeze(dateKey) {
   const freezeDays = getFreezeDays();
   if (freezeDays.includes(dateKey)) {
     alert('❄️ That day is already frozen!');
@@ -975,8 +1410,16 @@ function applyFreeze(dateKey, tokens) {
     if (modal) modal.remove();
     return;
   }
+  const tokens = getFreezeTokens();
+  if (tokens <= 0) {
+    alert('â„ï¸ You have no freeze tokens left!');
+    const modal = document.getElementById('freezeModal');
+    if (modal) modal.remove();
+    return;
+  }
   freezeDays.push(dateKey);
   localStorage.setItem('freezeDays_' + currentUser, JSON.stringify(freezeDays));
+  setFreezeBalance(tokens - 1);
   updateStreak();
   updateFreezeDisplay();
   if (calYear !== undefined) renderCalendar();
@@ -1076,17 +1519,20 @@ function renderAboutStats() {
   const totalWorkouts = allSessions.length;
   const totalSets = allSessions.reduce((sum, s) => sum + s.sets.length, 0);
   const streak = getStreak();
+  const bestStreak = getBestStreak();
+  const socialEmpty = !myFollowCounts.followingCount && !myFollowCounts.followersCount;
   document.getElementById('aboutStats').innerHTML = `
     <div class="aboutStatsRow">
-      <div class="aboutStatCard"><div class="aboutStatIcon">🏋️</div><div class="aboutStatVal">${totalWorkouts}</div><div class="aboutStatLabel">Workouts</div></div>
-      <div class="aboutStatCard"><div class="aboutStatIcon">🔥</div><div class="aboutStatVal">${streak}</div><div class="aboutStatLabel">Streak</div></div>
-      <div class="aboutStatCard"><div class="aboutStatIcon">📦</div><div class="aboutStatVal">${totalSets}</div><div class="aboutStatLabel">Total Sets</div></div>
+      <div class="aboutStatCard aboutStatCardWorkouts"><div class="aboutStatIcon">🏋️</div><div class="aboutStatVal">${totalWorkouts}</div><div class="aboutStatLabel">Workouts</div><div class="aboutStatMeta">All Time</div></div>
+      <div class="aboutStatCard aboutStatCardStreak"><div class="aboutStatIcon">📦</div><div class="aboutStatVal">${totalSets}</div><div class="aboutStatLabel">Total Sets</div><div class="aboutStatMeta">Logged</div></div>
+      <div class="aboutStatCard aboutStatCardBest"><div class="aboutStatIcon">⭐</div><div class="aboutStatVal">${bestStreak}</div><div class="aboutStatLabel">Best Streak</div></div>
     </div>
     <div class="followCountsRow">
-      <div class="followCountCard" onclick="showFollowSearch()"><div class="followCountNum" id="myFollowingCount">${myFollowCounts.followingCount}</div><div class="followCountLabel">Following</div></div>
-      <div class="followDivider"></div>
-      <div class="followCountCard"><div class="followCountNum" id="myFollowersCount">${myFollowCounts.followersCount}</div><div class="followCountLabel">Followers</div></div>
-      <div class="followDivider"></div>
+      <div class="followCountsGrid">
+        <div class="followCountCard" onclick="showFollowSearch()"><div class="followCountNum" id="myFollowingCount">${myFollowCounts.followingCount}</div><div class="followCountLabel">Following</div></div>
+        <div class="followCountCard"><div class="followCountNum" id="myFollowersCount">${myFollowCounts.followersCount}</div><div class="followCountLabel">Followers</div></div>
+      </div>
+      ${socialEmpty ? '<div class="followEmptyHint">Connect with lifters to build your circle.</div>' : ''}
       <button class="findPeopleBtn" onclick="showFollowSearch()">🔍 Find People</button>
     </div>`;
 }
@@ -1467,21 +1913,8 @@ const BADGES = [
   { id:'streak_100',  name:'Centurion',   desc:'100 Day Streak',               shape:'hexagon', tier:'gold', icon:'👑', progress: () => ({ cur: Math.min(getBestStreak(),100), max:100 }) },
   { id:'pushup_75',   name:'Push 75',     desc:'75 Push-Ups in a set',         shape:'star',    tier:'gold', icon:'💪', progress: () => ({ cur: Math.min(getBestReps('Push-Up'),75), max:75 }) },
   { id:'pullup_20',   name:'Pull 20',     desc:'20 Pull-Ups in a set',         shape:'star',    tier:'gold', icon:'🔝', progress: () => ({ cur: Math.min(getBestReps('Pull-Up'),20), max:20 }) },
-  { id:'full_body',   name:'Full Body',   desc:'Train all 13 muscles in one week', shape:'star', tier:'gold', icon:'🌟',
-    progress: () => {
-      const total = Object.keys(EXERCISES).length;
-      const weekMap = {};
-      allSessions.forEach(s => {
-        const d = new Date(s.date), mon = new Date(d);
-        mon.setDate(d.getDate() - ((d.getDay() + 6) % 7)); mon.setHours(0,0,0,0);
-        const key = mon.toLocaleDateString('en-CA');
-        if (!weekMap[key]) weekMap[key] = new Set();
-        weekMap[key].add(s.muscle);
-      });
-      let best = 0;
-      Object.values(weekMap).forEach(muscles => { best = Math.max(best, muscles.size); });
-      return { cur: best, max: total };
-    }
+  { id:'full_body',   name:'Full Body',   desc:'Train all 13 muscles at orange intensity for 2 consecutive weeks', shape:'star', tier:'gold', icon:'🌟',
+    progress: () => getFullBodyWeekProgress()
   },
 
   // ── PLATINUM ──────────────────────────────────────────────────────────────
@@ -1531,20 +1964,21 @@ function makeBadgeSVG(badge, pct) {
     circle:  `<circle cx="50" cy="50" r="42"/>`,
     star:    `<polygon points="50,4 61,35 95,35 68,57 79,91 50,70 21,91 32,57 5,35 39,35"/>`
   };
+  const fillOpacity = badge.tier === 'gold' ? 0.65 : 1;
   return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:72px;height:72px;filter:${glowFilter};transition:all .3s">
     <defs>
       <linearGradient id="base_${uid}" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style="stop-color:#2a2a2a"/><stop offset="100%" style="stop-color:#1a1a1a"/>
       </linearGradient>
       <linearGradient id="fill_${uid}" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" style="stop-color:${t.grad.split(',')[0]};stop-opacity:1"/>
-        <stop offset="100%" style="stop-color:${t.grad.split(',')[1]};stop-opacity:0.8"/>
+        <stop offset="0%" style="stop-color:${t.grad.split(',')[0]};stop-opacity:0.9"/>
+        <stop offset="100%" style="stop-color:${t.grad.split(',')[1]};stop-opacity:0.6"/>
       </linearGradient>
       <clipPath id="clip_${uid}">${shapes[badge.shape]}</clipPath>
       <clipPath id="fillclip_${uid}"><rect x="0" y="${fillY}" width="100" height="${fillPct}"/></clipPath>
     </defs>
     <g clip-path="url(#clip_${uid})"><rect x="0" y="0" width="100" height="100" fill="url(#base_${uid})"/></g>
-    <g clip-path="url(#clip_${uid})"><g clip-path="url(#fillclip_${uid})"><rect x="0" y="0" width="100" height="100" fill="url(#fill_${uid})"/></g></g>
+    <g clip-path="url(#clip_${uid})"><g clip-path="url(#fillclip_${uid})"><rect x="0" y="0" width="100" height="100" fill="url(#fill_${uid})" opacity="${fillOpacity}"/></g></g>
     <g fill="none" stroke="${t.outer}" stroke-width="2.5" opacity="${unlocked ? 1 : 0.4}">${shapes[badge.shape]}</g>
     <text x="50" y="58" text-anchor="middle" font-size="28" style="opacity:${unlocked ? 1 : 0.5}">${badge.icon}</text>
   </svg>`;
@@ -1801,5 +2235,21 @@ const originalUpdateStreak = updateStreak;
 updateStreak = function(...args) {
   const result = originalUpdateStreak.apply(this, args);
   renderShero();
+  return result;
+};
+
+updateFreezeDisplay = function() {
+  const el = document.getElementById('freezeTokenDisplay');
+  if (!el) return;
+  const tokens = getFreezeTokens();
+  const icons = tokens > 0 ? '❄️' : '—';
+  el.innerHTML = `<div class="freezeDisplay"><span class="freezeLabel">Streak Freeze Tokens</span><span class="freezeIcons">${icons}</span><span class="freezeCount">${tokens} available +1 every 30 streak days</span></div>`;
+};
+
+const updateStreakWithShero = updateStreak;
+updateStreak = function(...args) {
+  syncFreezeRewards();
+  const result = updateStreakWithShero.apply(this, args);
+  updateFreezeDisplay();
   return result;
 };

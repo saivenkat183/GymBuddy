@@ -155,8 +155,8 @@ main{flex:1;padding:10px 16px 96px;max-width:1200px;margin:0 auto;width:100%;ove
 /* ─── BODY PAGE ────────────────────────────────────────────── */
 .bodyPage .pageHero{width:min(100%,760px);align-self:stretch}
 .bodyTopRow{width:min(100%,340px);display:flex;align-items:flex-start;justify-content:flex-start;gap:10px}
-.bodyPage{position:relative}
-.streakBanner{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--gold3);border-radius:20px;padding:4px 12px;font-size:.65rem;font-weight:600;color:var(--gold);letter-spacing:1px;text-transform:uppercase;font-family:'Inter',sans-serif;max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bodyPage{position:relative;gap:8px}
+.streakBanner{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--bg3);border:1px solid var(--gold3);border-radius:20px;padding:4px 12px;font-size:.65rem;font-weight:600;color:var(--gold);letter-spacing:1px;text-transform:uppercase;font-family:'Inter',sans-serif;max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;align-self:center;margin-inline:auto}
 .sheroWrap{position:absolute;right:10px;top:54px;z-index:15}
 .sheroIconBtn{
   width:36px;
@@ -260,14 +260,43 @@ main{flex:1;padding:10px 16px 96px;max-width:1200px;margin:0 auto;width:100%;ove
 .viewToggle{display:flex;gap:0;border:1px solid var(--border3);border-radius:2px;overflow:hidden}
 .viewBtn{padding:5px 20px;border:none;background:var(--bg3);color:var(--text3);cursor:pointer;transition:.2s;font-size:.7rem;letter-spacing:2px;text-transform:uppercase;font-family:'Inter',sans-serif}
 .viewBtn.active{background:var(--goldGrad);color:#000;font-weight:700}
-.bodyWrap{position:relative;width:min(156px, 41vw);height:auto;flex-shrink:0}
+.bodyWrap{position:relative;width:min(172px, 44vw);height:auto;flex-shrink:0}
 .bodyWrap svg{width:100%;height:auto;display:block}
 .muscle-group{cursor:pointer;transition:fill .3s,opacity .2s,filter .2s}
 .muscle-group:hover{opacity:.8;filter:brightness(1.3)}
-.muscleLabel{text-align:center;color:var(--gold);font-weight:600;min-height:14px;letter-spacing:1.7px;text-transform:uppercase;font-family:'Bebas Neue',sans-serif;font-size:.74rem;margin-top:-16px}
-.heatmapLegend{display:flex;align-items:center;gap:5px;font-size:.5rem;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-top:-8px}
-.bodyActionRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:min(100%,320px);margin-top:4px}
+.bodyInfoPanel{
+  width:min(100%,332px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px 12px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.01));
+}
+.muscleLabel{text-align:center;color:#dfc575;font-weight:600;min-height:14px;letter-spacing:1.2px;text-transform:uppercase;font-family:'Bebas Neue',sans-serif;font-size:.68rem;margin-top:0}
+.heatmapLegend{display:flex;align-items:center;gap:8px;font-size:.47rem;color:var(--text3);letter-spacing:.65px;text-transform:uppercase;margin-top:0}
+.bodyActionRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-top:2px}
 .bodyActionBtn{width:100%;margin-top:0!important;padding:10px 8px;font-size:.66rem;letter-spacing:1.2px;border-radius:18px;white-space:nowrap}
+.sheroQuickPick{
+  margin:-2px 0 12px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(240,201,90,.08);
+  border:1px solid rgba(240,201,90,.18);
+  color:#f4e7bb;
+  font-size:.76rem;
+  line-height:1.45;
+}
+.sheroQuickPick strong{
+  color:#f0c95a;
+  font-size:.62rem;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  display:block;
+  margin-bottom:4px;
+}
 .legendBar{width:70px;height:5px;border-radius:2px;background:linear-gradient(to right,#1a1a1a,#27ae60)}
 
 /* ─── WORKOUT MODAL ────────────────────────────────────────── */
@@ -393,13 +422,17 @@ canvas{max-height:260px}
 .aboutEditBtn{width:100%;margin-top:4px;padding:10px;font-size:.8rem;}
 
 /* ─── ABOUT STATS GRID ─────────────────────────────────────── */
-.aboutStatsRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
-.aboutStatCard{background:var(--bg4);border-radius:10px;padding:14px 4px;text-align:center;border:1px solid var(--border2);transition:.2s;position:relative;overflow:hidden;}
+.aboutStatsRow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.aboutStatCard{background:var(--bg4);border-radius:10px;padding:14px 6px 12px;text-align:center;border:1px solid var(--border2);transition:.2s;position:relative;overflow:hidden;}
 .aboutStatCard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--goldGrad);}
 .aboutStatCard:hover{border-color:var(--gold3);box-shadow:var(--goldGlow);transform:translateY(-2px);}
 .aboutStatIcon{font-size:1.2rem;margin-bottom:4px;}
 .aboutStatVal{font-size:1.6rem;font-weight:900;font-family:'Bebas Neue',sans-serif;color:var(--gold2);letter-spacing:1px;line-height:1;margin-bottom:3px;}
 .aboutStatLabel{font-size:.62rem;color:var(--text4);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.aboutStatMeta{font-size:.54rem;color:#7a7f87;text-transform:uppercase;letter-spacing:1.2px;margin-top:5px}
+.aboutStatCardWorkouts .aboutStatIcon,.aboutStatCardWorkouts .aboutStatVal{color:#f0d561}
+.aboutStatCardStreak .aboutStatIcon,.aboutStatCardStreak .aboutStatVal{color:#ffb347}
+.aboutStatCardBest .aboutStatIcon,.aboutStatCardBest .aboutStatVal{color:#e7d18f}
 
 /* ─── AI PAGE ──────────────────────────────────────────────── */
 .chatBox{background:var(--bg5);border-radius:var(--pageRadius);padding:16px;height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;border:1px solid var(--border);box-shadow:var(--cardShadow)}
@@ -516,12 +549,37 @@ canvas{max-height:260px}
 .badgesSummary{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px 16px;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;color:var(--gold2);margin-bottom:20px;text-align:center;}
 .badgesTierTitle{font-size:.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--text4);margin-bottom:10px;margin-top:4px;padding-bottom:6px;border-bottom:1px solid var(--border);}
 .badgesGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;}
-.badgeCard{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px 8px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;transition:.2s;}
-.badgeCard.unlocked{border-color:var(--border2)}
-.badgeCard.unlocked:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.badgeCard{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px 8px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;transition:.2s;position:relative;overflow:hidden}
+.badgeCard.unlocked{
+  border-color:rgba(240,201,90,.35);
+  background:
+    radial-gradient(circle at top,rgba(255,215,120,.12),transparent 52%),
+    linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01)),
+    var(--bg3);
+  box-shadow:
+    0 0 0 1px rgba(240,201,90,.08) inset,
+    0 10px 24px rgba(0,0,0,.32),
+    0 0 22px rgba(240,201,90,.14);
+}
+.badgeCard.unlocked::before{
+  content:'';
+  position:absolute;
+  top:10px;
+  left:50%;
+  width:72px;
+  height:72px;
+  transform:translateX(-50%);
+  background:radial-gradient(circle,rgba(255,226,146,.3) 0%,rgba(255,226,146,.12) 32%,rgba(255,226,146,0) 68%);
+  opacity:.6;
+  pointer-events:none;
+}
+.badgeCard.unlocked:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(0,0,0,.42),0 0 28px rgba(240,201,90,.2)}
+.badgeCard.unlocked svg{filter:drop-shadow(0 0 10px rgba(255,215,120,.22))}
 .badgeName{font-size:.74rem;font-weight:700;color:var(--text);margin-top:6px;letter-spacing:.3px;}
+.badgeCard.unlocked .badgeName{text-shadow:0 0 12px rgba(255,215,120,.2)}
 .badgeDesc{font-size:.58rem;color:var(--text4);margin-top:3px;line-height:1.4;}
 .badgeProgress{font-size:.62rem;color:var(--text3);margin-top:4px;font-weight:600;letter-spacing:.5px;}
+.badgeCard.unlocked .badgeProgress{color:#e7d9a7}
 .badgeTier{font-size:.56rem;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-top:5px;padding:2px 7px;border-radius:10px;}
 .badgeTier.bronze{color:#cd7f32;background:rgba(205,127,50,0.15)}
 .badgeTier.silver{color:#c0c0c0;background:rgba(192,192,192,0.15)}
@@ -632,13 +690,14 @@ main{padding-bottom:90px!important;}
    ════════════════════════════════════════ */
 
 /* ─── FOLLOW COUNTS ROW (About page) ─────────────────────────────────────── */
-.followCountsRow{display:flex;align-items:center;gap:10px;background:var(--bg4);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-top:4px;}
+.followCountsRow{display:flex;flex-direction:column;align-items:stretch;gap:12px;background:var(--bg4);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-top:4px;}
+.followCountsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .followCountCard{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;flex:1;}
 .followCountCard:hover .followCountNum{color:var(--gold2);}
 .followCountNum{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--gold);letter-spacing:1px;line-height:1;transition:.2s;}
 .followCountLabel{font-size:.62rem;color:var(--text4);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;}
-.followDivider{width:1px;height:36px;background:var(--border2);}
-.findPeopleBtn{background:var(--goldGrad);color:#000;border:none;padding:8px 10px;border-radius:20px;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:.2s;flex-shrink:0;}
+.followEmptyHint{text-align:center;color:var(--text4);font-size:.68rem;letter-spacing:.7px}
+.findPeopleBtn{background:var(--goldGrad);color:#000;border:none;padding:10px 12px;border-radius:20px;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:.2s;align-self:stretch;}
 .findPeopleBtn:hover{box-shadow:var(--goldGlow);}
 
 /* ─── FOLLOW TOGGLE BUTTON ─────────────────────────────────────────────────── */

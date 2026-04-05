@@ -84,20 +84,20 @@
             <rect x="91" y="54" width="18" height="14" fill="#3a3a3a"/>
             <rect x="60" y="68" width="80" height="90" rx="8" fill="#2a2a2a"/>
             <g class="muscle-group" id="hm_Chest" data-muscle="Chest" onclick="openMuscle('Chest')">
-              <rect x="63" y="70" width="34" height="38" rx="5"/>
-              <rect x="103" y="70" width="34" height="38" rx="5"/>
+              <rect x="63" y="70" width="34" height="32" rx="5" stroke="#3b3b3b" stroke-width="1.5"/>
+              <rect x="103" y="70" width="34" height="32" rx="5" stroke="#3b3b3b" stroke-width="1.5"/>
             </g>
             <g class="muscle-group" id="hm_Shoulders" data-muscle="Shoulders" onclick="openMuscle('Shoulders')">
               <ellipse cx="52" cy="82" rx="14" ry="18"/>
               <ellipse cx="148" cy="82" rx="14" ry="18"/>
             </g>
             <g class="muscle-group" id="hm_Abs" data-muscle="Abs" onclick="openMuscle('Abs')">
-              <rect x="82" y="112" width="14" height="12" rx="3"/>
-              <rect x="104" y="112" width="14" height="12" rx="3"/>
-              <rect x="82" y="128" width="14" height="12" rx="3"/>
-              <rect x="104" y="128" width="14" height="12" rx="3"/>
-              <rect x="82" y="144" width="14" height="12" rx="3"/>
-              <rect x="104" y="144" width="14" height="12" rx="3"/>
+              <rect x="82" y="118" width="14" height="12" rx="3" stroke="#3b3b3b" stroke-width="1.2"/>
+              <rect x="104" y="118" width="14" height="12" rx="3" stroke="#3b3b3b" stroke-width="1.2"/>
+              <rect x="82" y="134" width="14" height="12" rx="3" stroke="#3b3b3b" stroke-width="1.2"/>
+              <rect x="104" y="134" width="14" height="12" rx="3" stroke="#3b3b3b" stroke-width="1.2"/>
+              <rect x="82" y="148" width="14" height="10" rx="3" stroke="#3b3b3b" stroke-width="1.2"/>
+              <rect x="104" y="148" width="14" height="10" rx="3" stroke="#3b3b3b" stroke-width="1.2"/>
             </g>
             <g class="muscle-group" id="hm_Biceps" data-muscle="Biceps" onclick="openMuscle('Biceps')">
               <rect x="30" y="100" width="16" height="42" rx="8"/>
@@ -133,11 +133,11 @@
               <ellipse cx="148" cy="82" rx="14" ry="18"/>
             </g>
             <g class="muscle-group" id="hm_Lats" data-muscle="Lats" onclick="openMuscle('Lats')">
-              <polygon points="60,90 60,155 90,130 82,90"/>
-              <polygon points="140,90 140,155 110,130 118,90"/>
+              <polygon points="60,90 60,155 90,130 82,90" stroke="#3b3b3b" stroke-width="1.3"/>
+              <polygon points="140,90 140,155 110,130 118,90" stroke="#3b3b3b" stroke-width="1.3"/>
             </g>
             <g class="muscle-group" id="hm_Lower_Back" data-muscle="Lower Back" onclick="openMuscle('Lower Back')">
-              <rect x="80" y="128" width="40" height="28" rx="5"/>
+              <rect x="80" y="128" width="40" height="28" rx="5" stroke="#3b3b3b" stroke-width="1.3"/>
             </g>
             <g class="muscle-group" id="hm_Triceps" data-muscle="Triceps" onclick="openMuscle('Triceps')">
               <rect x="30" y="100" width="16" height="42" rx="8"/>
@@ -163,15 +163,17 @@
             <rect x="108" y="320" width="32" height="14" rx="5" fill="#2a2a2a"/>
           </svg>
         </div>
-        <div class="muscleLabel" id="muscleLabel">Click a muscle to log workout</div>
-        <div class="heatmapLegend">
-          <span style="color:#e74c3c">🔴 Low</span>
-          <span style="color:#f39c12">🟡 Moderate</span>
-          <span style="color:#27ae60">🟢 Good</span>
-        </div>
-        <div class="bodyActionRow">
-          <button class="restDayBtn bodyActionBtn" onclick="logRestDay()">😴 Rest Day</button>
-          <button class="freezeBtn bodyActionBtn" onclick="useFreeze()">❄️ Freeze</button>
+        <div class="bodyInfoPanel">
+          <div class="muscleLabel" id="muscleLabel">Click a muscle to log workout</div>
+          <div class="heatmapLegend">
+            <span style="color:#e74c3c">🔴 Low</span>
+            <span style="color:#f39c12">🟡 Moderate</span>
+            <span style="color:#27ae60">🟢 Good</span>
+          </div>
+          <div class="bodyActionRow">
+            <button class="restDayBtn bodyActionBtn" onclick="logRestDay()">😴 Rest Day</button>
+            <button class="freezeBtn bodyActionBtn" onclick="useFreeze()">❄️ Freeze</button>
+          </div>
         </div>
       </div>
     </div>
@@ -471,6 +473,7 @@
         <option value="yesterday">Yesterday</option>
       </select>
     </div>
+    <div class="sheroQuickPick" id="sheroQuickPick"></div>
     <div class="exerciseList" id="exerciseList"></div>
     <div class="modalBtns hidden" id="modalBtns">
       <button class="btn sec" onclick="closeModal()">Cancel</button>
