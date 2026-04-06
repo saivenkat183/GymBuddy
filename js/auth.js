@@ -1,20 +1,20 @@
 function toggleAuthMode() {
   isRegister = !isRegister;
-  byId('authNameWrap').classList.toggle('hidden', !isRegister);
+  document.getElementById('authNameWrap').classList.toggle('hidden', !isRegister);
   document.querySelector('#authScreen .btn').textContent = isRegister ? 'Register' : 'Login';
   document.querySelector('#authScreen .btn.sec').textContent = isRegister ? 'Already have an account? Login' : 'Don\'t have an account? Register';
-  byId('authMsg').classList.add('hidden');
+  document.getElementById('authMsg').classList.add('hidden');
 }
 
 function showAuthMsg(message) {
-  const el = byId('authMsg');
+  const el = document.getElementById('authMsg');
   el.textContent = message;
   el.classList.remove('hidden');
 }
 
 async function doAuth() {
-  const username = byId('authUser').value.trim();
-  const password = byId('authPass').value;
+  const username = document.getElementById('authUser').value.trim();
+  const password = document.getElementById('authPass').value;
   if (!username || !password) {
     showAuthMsg('Please fill all fields');
     return;
@@ -22,7 +22,7 @@ async function doAuth() {
 
   const endpoint = isRegister ? '/auth/register' : '/auth/login';
   const body = isRegister
-    ? { username, password, name: byId('authName').value.trim() || username }
+    ? { username, password, name: document.getElementById('authName').value.trim() || username }
     : { username, password };
 
   showLoading();
@@ -40,12 +40,12 @@ async function doAuth() {
     }
     token = data.token;
     currentUser = data.username;
-    byId('authScreen').style.display = 'none';
-    byId('appScreen').style.display = 'flex';
-    byId('bottomNav').style.display = 'flex';
-    byId('navUser').textContent = 'Hey, ' + data.name + '!';
-    byId('avatarInitial').textContent = data.name[0].toUpperCase();
-    byId('navAvatarInitial').textContent = data.name[0].toUpperCase();
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'flex';
+    document.getElementById('bottomNav').style.display = 'flex';
+    document.getElementById('navUser').textContent = 'Hey, ' + data.name + '!';
+    document.getElementById('avatarInitial').textContent = data.name[0].toUpperCase();
+    document.getElementById('navAvatarInitial').textContent = data.name[0].toUpperCase();
     await loadSessions();
     await loadMyFollowCounts();
     updateStreak();
@@ -66,11 +66,11 @@ function logout() {
   allSessions = [];
   myFollowCounts = { followersCount: 0, followingCount: 0 };
   removeGalleryDraft();
-  byId('authScreen').style.display = 'flex';
-  byId('appScreen').style.display = 'none';
-  byId('bottomNav').style.display = 'none';
-  byId('authUser').value = '';
-  byId('authPass').value = '';
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('bottomNav').style.display = 'none';
+  document.getElementById('authUser').value = '';
+  document.getElementById('authPass').value = '';
 }
 
 async function loadSessions() {

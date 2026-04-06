@@ -54,7 +54,7 @@
           <div class="streakBanner" id="streakBanner"></div>
         </div>
         <div class="sheroWrap">
-          <button class="sheroIconBtn" id="sheroIconBtn" type="button" aria-label="Open Shero tips">&#128161;</button>
+          <button class="sheroIconBtn" id="sheroIconBtn" type="button" aria-label="Open Shero tips">🐶</button>
           <div class="sheroCard hidden" id="sheroCard">
             <div class="sheroTop">
               <div class="sheroBadge">Shero</div>
@@ -70,6 +70,9 @@
             <div class="sheroBlock">
               <div class="sheroMood" id="sheroFeedbackMood">Feedback</div>
               <div class="sheroText" id="sheroFeedbackText">Shero is reviewing your latest training pattern...</div>
+            </div>
+            <div class="sheroAskRow">
+              <button class="sheroAskAiBtn" id="sheroAskAiBtn" type="button" onclick="askAIAboutShero()">Ask AI about this</button>
             </div>
           </div>
         </div>
@@ -187,20 +190,40 @@
             <h2>Workout History</h2>
           </div>
         </div>
-        <div class="calendarSection">
-          <div class="calendarHeader">
-            <button class="calNavBtn" onclick="histCalPrev()">‹</button>
-            <span class="calMonthLabel" id="histCalMonthLabel"></span>
-            <button class="calNavBtn" onclick="histCalNext()">›</button>
+        <div class="historyFilters">
+          <div class="historyFilterGroup historyTopRow">
+            <button class="historyFilterChip active" id="histGroup_all" onclick="setHistoryGroupFilter('all')">All</button>
+            <button class="historyFilterChip" id="histGroup_chest" onclick="setHistoryGroupFilter('chest')">Chest</button>
+            <button class="historyFilterChip" id="histGroup_back" onclick="setHistoryGroupFilter('back')">Back</button>
+            <button class="historyFilterChip" id="histGroup_legs" onclick="setHistoryGroupFilter('legs')">Legs</button>
+            <button class="historyFilterChip" id="histGroup_arms" onclick="setHistoryGroupFilter('arms')">Arms</button>
           </div>
-          <div class="calGrid" id="histCalGrid"></div>
-          <div class="histLegend">
-            <span class="histDot low"></span><span>1–7 sets</span>
-            <span class="histDot med"></span><span>8–14 sets</span>
-            <span class="histDot high"></span><span>15+ sets</span>
+          <div class="historyFilterGroup historyBottomRow">
+            <button class="historyFilterChip" id="histGroup_shoulders" onclick="setHistoryGroupFilter('shoulders')">Shoulders</button>
+            <button class="historyFilterChip" id="histGroup_core" onclick="setHistoryGroupFilter('core')">Core</button>
+          </div>
+          <div class="historyFilterGroup historyTimeRow">
+            <button class="historyFilterChip active" id="histTime_all" onclick="setHistoryTimeFilter('all')">All Time</button>
+            <button class="historyFilterChip" id="histTime_thisWeek" onclick="setHistoryTimeFilter('thisWeek')">This Week</button>
+            <button class="historyFilterChip" id="histTime_lastMonth" onclick="setHistoryTimeFilter('lastMonth')">Last Month</button>
           </div>
         </div>
-        <div id="historyDayDetail"></div>
+        <div class="historyLayout">
+          <div class="calendarSection">
+            <div class="calendarHeader">
+              <button class="calNavBtn" onclick="histCalPrev()">‹</button>
+              <span class="calMonthLabel" id="histCalMonthLabel"></span>
+              <button class="calNavBtn" onclick="histCalNext()">›</button>
+            </div>
+            <div class="calGrid" id="histCalGrid"></div>
+            <div class="histLegend">
+              <span class="histDot low"></span><span>1–7 sets</span>
+              <span class="histDot med"></span><span>8–14 sets</span>
+              <span class="histDot high"></span><span>15+ sets</span>
+            </div>
+          </div>
+          <div id="historyDayDetail"></div>
+        </div>
       </div>
     </div>
 
@@ -254,8 +277,23 @@
           <div class="muscleLoadBars" id="muscleLoadBars"></div>
         </div>
         <div class="chartWrap">
-          <h3>Volume Over Time</h3>
+          <div class="chartHeaderRow">
+            <h3 id="progressChartTitle">Volume Over Time</h3>
+            <div class="chartControlStack">
+              <div class="chartMetricChips">
+                <button type="button" class="chartMetricChip active" data-metric="volume" onclick="setChartMetric('volume')">Volume</button>
+                <button type="button" class="chartMetricChip" data-metric="maxWeight" onclick="setChartMetric('maxWeight')">Max Weight</button>
+                <button type="button" class="chartMetricChip" data-metric="reps" onclick="setChartMetric('reps')">Reps</button>
+              </div>
+              <div class="chartRangeChips">
+                <button type="button" class="chartRangeChip" data-range="7d" onclick="setChartRange('7d')">Last 7 Days</button>
+                <button type="button" class="chartRangeChip" data-range="30d" onclick="setChartRange('30d')">30 Days</button>
+                <button type="button" class="chartRangeChip active" data-range="all" onclick="setChartRange('all')">All</button>
+              </div>
+            </div>
+          </div>
           <select id="chartExSelect" onchange="renderChart()"></select>
+          <div id="progressChartNoData" class="chartNoData hidden">No workout in this time frame.</div>
           <canvas id="progressChart"></canvas>
         </div>
       </div>
@@ -385,6 +423,18 @@
                   <option>Stay Fit</option>
                 </select>
               </div>
+              <div class="formGroup">
+                <label>Week Starts On</label>
+                <select id="aboutWeekStart">
+                  <option value="monday">Monday</option>
+                  <option value="tuesday">Tuesday</option>
+                  <option value="wednesday">Wednesday</option>
+                  <option value="thursday">Thursday</option>
+                  <option value="friday">Friday</option>
+                  <option value="saturday">Saturday</option>
+                  <option value="sunday">Sunday</option>
+                </select>
+              </div>
               <button class="btn" onclick="saveAbout()">Save Profile</button>
             </div>
           </div>
@@ -458,6 +508,39 @@
       </div>
     </div>
 
+    <!-- GOALS PAGE -->
+    <div class="page" id="goalsPage">
+      <div class="goalsPage">
+        <div class="pageHero pageHeroGoals">
+          <div class="pageEyebrow">Targets</div>
+          <div class="pageTitleRow">
+            <h2>Fitness Goals</h2>
+          </div>
+        </div>
+        <div class="goalsAddSection">
+          <div class="goalsForm">
+            <div class="formGroup">
+              <label>Goal Type</label>
+              <select id="goalType" onchange="updateGoalFields()" required>
+                <option value="">Click to select goal type...</option>
+                <option value="strength">💪 Strength (Lift)</option>
+                <option value="weight">⚖️ Weight</option>
+                <option value="cardio">🏃 Cardio</option>
+                <option value="custom">📋 Custom</option>
+              </select>
+            </div>
+            <div id="goalFieldsContainer"></div>
+            <div class="formGroup">
+              <label>Target Date</label>
+              <input type="date" id="goalDate" required/>
+            </div>
+            <button class="btn" onclick="saveGoal()" style="width:100%;max-width:none">Add Goal</button>
+          </div>
+        </div>
+        <div id="goalsContainer" class="goalsContainer"></div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -511,6 +594,12 @@
     <button class="sheetItem" onclick="showPageFromSheet('feedbackPage')">
       <span class="sheetIcon">💬</span>
       <span class="sheetLabel">Feedback</span>
+      <span class="sheetArrow">›</span>
+    </button>
+    <div class="sheetDivider"></div>
+    <button class="sheetItem" onclick="showPageFromSheet('goalsPage')">
+      <span class="sheetIcon">🎯</span>
+      <span class="sheetLabel">Goals</span>
       <span class="sheetArrow">›</span>
     </button>
     <div class="sheetDivider"></div>

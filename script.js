@@ -139,6 +139,8 @@ const MUSCLE_COLORS = ['#2a2a2a','#1a5c2a','#27ae60','#2ecc71'];
 let currentUser = null, isRegister = false, token = null;
 let currentMuscle = '', currentExercise = '', currentSets = [];
 let progressChart = null, allSessions = [];
+let chartMetric = 'volume';
+let chartRange = 'all';
 let myFollowCounts = { followersCount: 0, followingCount: 0 };
 let sheroFocusMuscle = '';
 let previousUnlockedBadgeIds = new Set();
@@ -235,6 +237,7 @@ function showPage(id, btn) {
   if (id === 'aboutPage') loadAbout();
   if (id === 'badgesPage') renderBadges();
   if (id === 'galleryPage') renderGallery();
+  if (id === 'goalsPage') renderGoals();
 }
 
 // ─── BODY VIEW ────────────────────────────────────────────────────────────────
@@ -264,11 +267,28 @@ const MUSCLE_THRESHOLDS = {
   'Calves':      [4,  5],
 };
 
+function getWeekStartPreference() {
+  if (!currentUser) return 'monday';
+  const data = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
+  return data.weekStart || 'monday';
+}
+
+function getWeekStartDayIndex() {
+  const dayMap = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6
+  };
+  return dayMap[getWeekStartPreference()] ?? 1;
+}
+
 function getDateWeekKey(date) {
-  const mon = new Date(date);
-  mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
-  mon.setHours(0, 0, 0, 0);
-  return mon.toLocaleDateString('en-CA');
+  const { monday } = getCurrentWeekWindow(0, date);
+  return monday.toLocaleDateString('en-CA');
 }
 
 function getFullBodyWeekProgress() {
@@ -361,15 +381,7 @@ function checkBadgeUnlocks() {
 }
 
 function updateHeatmap() {
-  // Only count SETS from current week (Monday to Sunday)
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
-  monday.setHours(0, 0, 0, 0);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  sunday.setHours(23, 59, 59, 999);
+  const { monday, sunday } = getCurrentWeekWindow();
 
   // Count sets per muscle this week
   const setCounts = {};
@@ -540,11 +552,13 @@ function updateStreak() {
 }
 
 // ─── MODAL ────────────────────────────────────────────────────────────────────
-function getCurrentWeekWindow() {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
+function getCurrentWeekWindow(offset = 0, baseDate = new Date()) {
+  const now = new Date(baseDate);
+  now.setHours(0, 0, 0, 0);
+  const weekStartDay = getWeekStartDayIndex();
+  const daysSinceWeekStart = (now.getDay() - weekStartDay + 7) % 7;
   const monday = new Date(now);
-  monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+  monday.setDate(now.getDate() - daysSinceWeekStart + (offset * 7));
   monday.setHours(0, 0, 0, 0);
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
@@ -572,6 +586,14 @@ function getCurrentWeekSessions() {
       return date >= monday && date <= sunday;
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+function getCurrentWeekRestDays() {
+  const { monday, sunday } = getCurrentWeekWindow();
+  return getRestDays().filter(dateKey => {
+    const date = new Date(dateKey + 'T12:00:00');
+    return date >= monday && date <= sunday;
+  });
 }
 
 function getRecentSessions(days = 3) {
@@ -725,34 +747,70 @@ function renderSheroQuickPick(muscle = sheroFocusMuscle) {
   el.innerHTML = `<strong>Shero picks for ${muscle}</strong>${picks.join(' · ')}`;
 }
 
+function getMissedMuscleAlert() {
+  if (!allSessions.length) return null;
+  const muscles = Object.keys(EXERCISES);
+  const muscleLastDays = muscles.map(muscle => {
+    const lastSession = getLastSessionForMuscle(muscle);
+    return {
+      muscle,
+      days: lastSession ? getDaysSince(lastSession.date) : 999
+    };
+  }).sort((a, b) => b.days - a.days);
+
+  const missed = muscleLastDays[0];
+  if (!missed || missed.days < 7) return null;
+
+  return missed.days >= 999
+    ? `${missed.muscle} has not been trained yet.`
+    : `${missed.muscle} has been skipped for ${missed.days} days.`;
+}
+
 function getSheroMessage(mode = 'suggest') {
   const counts = getWeeklyMuscleSetCounts();
   const weekSessions = getCurrentWeekSessions();
-  const recentCounts = getRecentMuscleSetCounts(3);
+  const cycleRestDays = getCurrentWeekRestDays().length;
   const streak = getStreak();
-  const restDays = getRestDays().length;
   const latest = allSessions.length
     ? [...allSessions].sort((a, b) => new Date(b.date) - new Date(a.date))[0]
     : null;
   const latestCluster = latest ? getMuscleCluster(latest.muscle) : null;
   const latestDaysAgo = latest ? getDaysSince(latest.date) : null;
-  const lowerRecent = getClusterSetTotal(recentCounts, 'lower');
   const clusterTotals = {
     push: getClusterSetTotal(counts, 'push'),
     pull: getClusterSetTotal(counts, 'pull'),
     lower: getClusterSetTotal(counts, 'lower'),
     core: getClusterSetTotal(counts, 'core')
   };
-  const recentTrainingLoad = Object.values(recentCounts).reduce((sum, value) => sum + value, 0);
-  const weeklyCoverageSolid = clusterTotals.push >= 12 && clusterTotals.pull >= 12 && clusterTotals.lower >= 10;
+  const allClusters = ['push', 'pull', 'lower', 'core'];
+  const cycleClusterTotals = { push: 0, pull: 0, lower: 0, core: 0 };
+  weekSessions.forEach(session => {
+    const cluster = getMuscleCluster(session.muscle);
+    if (cycleClusterTotals[cluster] !== undefined) {
+      cycleClusterTotals[cluster] += session.sets.length;
+    }
+  });
+  const cycleTrainingDays = [...new Set(weekSessions.map(session => new Date(session.date).toLocaleDateString('en-CA')))].length;
+  const cycleTrainingLoad = weekSessions.reduce((sum, session) => sum + session.sets.length, 0);
+  const clusterTargets = { push: 12, pull: 12, lower: 10, core: 8 };
+  const undertrainedClusters = allClusters
+    .filter(cluster => clusterTotals[cluster] < clusterTargets[cluster]);
+  const weeklyCoverageSolid = undertrainedClusters.length === 0;
+  const missedMuscleAlert = getMissedMuscleAlert();
+
+  const buildMessage = (mood, ...points) => {
+    const uniquePoints = [...new Set(points.flat().filter(Boolean))];
+    return { mood, points: uniquePoints, text: uniquePoints.join(' ') };
+  };
 
   if (mode === 'feedback') {
     if (!weekSessions.length) {
-      return {
-        mood: 'Feedback',
-        text: 'No sessions logged this week yet.'
-      };
+      return buildMessage(
+        'Feedback',
+        'No sessions logged this week yet.'
+      );
     }
+
     const weekDays = [...new Set(weekSessions.map(session => new Date(session.date).toLocaleDateString('en-CA')))];
     const weekSetTotal = weekSessions.reduce((sum, session) => sum + session.sets.length, 0);
     const trainedMuscles = [...new Set(weekSessions.map(session => session.muscle))];
@@ -764,110 +822,149 @@ function getSheroMessage(mode = 'suggest') {
       const firstDayMuscles = [...new Set(weekSessions
         .filter(session => new Date(session.date).toLocaleDateString('en-CA') === weekDays[0])
         .map(session => session.muscle))];
-      return {
-        mood: 'Feedback',
-        text: `Week day 1: ${weekSetTotal} total sets on ${firstDayMuscles.join(', ')}. Strong start.`
-      };
+      return buildMessage(
+        'Feedback',
+        `Week day 1: ${weekSetTotal} total sets on ${firstDayMuscles.join(', ')}. Strong start.`
+      );
     }
 
     if (weekDays.length === 2) {
       const missingClusters = ['push', 'pull', 'lower']
         .filter(cluster => clusterTotals[cluster] === 0)
         .map(cluster => getClusterLabel(cluster));
-      return {
-        mood: 'Feedback',
-        text: missingClusters.length
+      return buildMessage(
+        'Feedback',
+        missingClusters.length
           ? `First 2 days: ${weekSetTotal} total sets across ${trainedMuscles.length} muscles. Nice start, add ${missingClusters.join(' or ')} next.`
           : `First 2 days: ${weekSetTotal} total sets across ${trainedMuscles.length} muscles. Good balance so far.`
-      };
+      );
     }
 
     if (weeklyCoverageSolid) {
-      return {
-        mood: 'Feedback',
-        text: `This week: ${weekSetTotal} total sets across ${weekDays.length} days. Push, pull, and legs are all well covered.`
-      };
+      return buildMessage(
+        'Feedback',
+        `This week: ${weekSetTotal} total sets across ${weekDays.length} days. Push, pull, and legs are all well covered.`
+      );
     }
 
     const lowClusters = ['push', 'pull', 'lower']
       .filter(cluster => clusterTotals[cluster] === 0)
       .map(cluster => getClusterLabel(cluster));
 
-    return {
-      mood: 'Feedback',
-      text: lowClusters.length
+    return buildMessage(
+      'Feedback',
+      lowClusters.length
         ? `This week so far: ${weekSetTotal} total sets across ${weekDays.length} days. You have covered ${focusClusters.join(', ') || 'part of the week'}; add ${lowClusters.join(' and ')} to round it out.`
         : `This week so far: ${weekSetTotal} total sets across ${weekDays.length} days. Solid progress, keep building the week evenly.`
-    };
+    );
   }
 
   if (!allSessions.length) {
-    return {
-      mood: 'Suggestion',
-      text: 'Start with a push session.'
-    };
+    return buildMessage('Suggestion', 'Start with a push session.');
   }
-  if (latest && latestDaysAgo === 0 && latest.sets.length >= 8) {
-    return {
-      mood: 'Suggestion',
-      text: 'Rest today.'
-    };
+
+  const missedSuggestionPoint = missedMuscleAlert
+    ? `Missed: ${missedMuscleAlert}`
+    : '';
+
+  const clusterRatios = allClusters.map(cluster => ({
+    cluster,
+    ratio: clusterTotals[cluster] / clusterTargets[cluster]
+  }));
+  const sortedByRatio = [...clusterRatios].sort((a, b) => a.ratio - b.ratio);
+  const lowestCluster = sortedByRatio[0].cluster;
+  const freshCluster = allClusters
+    .filter(cluster => cluster !== latestCluster)
+    .sort((a, b) => {
+      const cycleDiff = (cycleClusterTotals[a] || 0) - (cycleClusterTotals[b] || 0);
+      if (cycleDiff !== 0) return cycleDiff;
+      return clusterRatios.find(item => item.cluster === a).ratio - clusterRatios.find(item => item.cluster === b).ratio;
+    })[0];
+  const upperBodyWorkedHard = cycleClusterTotals.push >= 8 && cycleClusterTotals.pull >= 8 && cycleClusterTotals.lower < 8;
+  const sameClusterNeedsRecovery = latestCluster && cycleClusterTotals[latestCluster] >= Math.max(8, Math.round(clusterTargets[latestCluster] * 0.6));
+  const overallFatigue = cycleTrainingLoad >= 18 || (streak >= 6 && cycleRestDays === 0 && cycleTrainingLoad >= 12) || cycleTrainingDays >= 6;
+  const overtrained = clusterRatios.some(c => c.ratio >= 1.5) && cycleTrainingLoad >= 15;
+  const latestClusterLabel = latestCluster ? getClusterLabel(latestCluster) : 'your last trained area';
+  const recoveryPoint = overtrained
+    ? 'Recovery: take a light day or full rest.'
+    : sameClusterNeedsRecovery && latestDaysAgo !== null && latestDaysAgo <= 1
+      ? `Recovery: let ${latestClusterLabel} recover today.`
+      : cycleTrainingDays >= 4 && cycleRestDays === 0
+        ? 'Recovery: add a rest or light day this cycle.'
+        : cycleTrainingLoad >= 12
+          ? 'Recovery: keep the next day easier.'
+          : cycleRestDays > 0
+            ? 'Recovery: recovery is on track.'
+            : 'Recovery: keep one rest day in the cycle.';
+
+  if (sameClusterNeedsRecovery && freshCluster && latestDaysAgo !== null && latestDaysAgo <= 1) {
+    const recoveryLabel = upperBodyWorkedHard ? 'Upper body' : `${getClusterLabel(latestCluster).charAt(0).toUpperCase() + getClusterLabel(latestCluster).slice(1)}`;
+    const freshLabel = getClusterLabel(freshCluster);
+    const workoutPoint = freshLabel === 'legs'
+      ? 'Workout: heavy legs is a smart next move.'
+      : `Workout: train ${freshLabel} next.`;
+    return buildMessage('Suggestion', workoutPoint, recoveryPoint, missedSuggestionPoint);
   }
-  if (streak >= 5 && restDays === 0) {
-    return {
-      mood: 'Suggestion',
-      text: 'Take a rest day.'
-    };
+
+  if (latest && latestDaysAgo === 0 && latest.sets.length >= 10 && overallFatigue) {
+    return buildMessage(
+      'Suggestion',
+      'Workout: keep today light.',
+      'Recovery: focus on sleep, hydration, and mobility.',
+      missedSuggestionPoint
+    );
   }
-  if (weeklyCoverageSolid && (recentTrainingLoad >= 12 || (latestDaysAgo !== null && latestDaysAgo <= 1))) {
-    return {
-      mood: 'Suggestion',
-      text: 'Rest and recover.'
-    };
+  if (streak >= 5 && cycleRestDays === 0 && cycleTrainingLoad >= 14) {
+    return buildMessage(
+      'Suggestion',
+      'Workout: take a light day or full rest.',
+      'Recovery: this cycle needs a break.',
+      missedSuggestionPoint
+    );
   }
-  if (latest && latestDaysAgo <= 1 && lowerRecent >= 8) {
-    return {
-      mood: 'Suggestion',
-      text: 'Do upper body next.'
-    };
+  if (weeklyCoverageSolid && overallFatigue) {
+    return buildMessage(
+      'Suggestion',
+      'Workout: keep the next session easy or rest.',
+      recoveryPoint,
+      missedSuggestionPoint
+    );
   }
-  if (restDays >= 2) {
-    return {
-      mood: 'Suggestion',
-      text: 'Come back with a moderate session.'
-    };
+
+  if (overtrained) {
+    return buildMessage(
+      'Suggestion',
+      'Workout: go light or rest next.',
+      recoveryPoint,
+      missedSuggestionPoint
+    );
   }
-  if (latestCluster === 'push') {
-    return {
-      mood: 'Suggestion',
-      text: 'Train pull next.'
-    };
+
+  if (clusterTotals[lowestCluster] < clusterTargets[lowestCluster]) {
+    return buildMessage(
+      'Suggestion',
+      `Workout: train ${getClusterLabel(lowestCluster)} next.`,
+      recoveryPoint,
+      missedSuggestionPoint
+    );
   }
-  if (latestCluster === 'pull') {
-    return {
-      mood: 'Suggestion',
-      text: 'Train push next.'
-    };
+
+  if (latest && latestDaysAgo <= 2 && clusterTotals[latestCluster] > clusterTotals[lowestCluster] + 4) {
+    return buildMessage(
+      'Suggestion',
+      `Workout: train ${getClusterLabel(lowestCluster)} next while ${getClusterLabel(latestCluster)} recovers.`,
+      recoveryPoint,
+      missedSuggestionPoint
+    );
   }
-  if (latestCluster === 'lower') {
-    const nextUpperCluster = (clusterTotals.push || 0) <= (clusterTotals.pull || 0) ? 'push' : 'pull';
-    return {
-      mood: 'Suggestion',
-      text: `Train ${getClusterLabel(nextUpperCluster)} next.`
-    };
-  }
-  if (latestCluster === 'core') {
-    const nextCluster = getSuggestedCluster(clusterTotals, 'core');
-    return {
-      mood: 'Suggestion',
-      text: `Train ${getClusterLabel(nextCluster)} next.`
-    };
-  }
+
   const nextCluster = getSuggestedCluster(clusterTotals);
-  return {
-    mood: 'Suggestion',
-    text: `Train ${getClusterLabel(nextCluster)} next.`
-  };
+  return buildMessage(
+    'Suggestion',
+    `Workout: train ${getClusterLabel(nextCluster)} next.`,
+    recoveryPoint,
+    missedSuggestionPoint
+  );
 }
 
 function getSheroStateKey() {
@@ -886,10 +983,20 @@ function setSheroCleared(value) {
   else localStorage.removeItem(key);
 }
 
+function formatSheroMessageText(message) {
+  const points = Array.isArray(message?.points)
+    ? message.points.filter(Boolean)
+    : [message?.text].filter(Boolean);
+  if (!points.length) return '';
+  if (points.length === 1) return points[0];
+  return points.map(point => `• ${point}`).join('<br>');
+}
+
 function renderShero() {
   const card = document.getElementById('sheroCard');
   const iconBtn = document.getElementById('sheroIconBtn');
   const clearBtn = document.getElementById('sheroClearBtn');
+  const askAiBtn = document.getElementById('sheroAskAiBtn');
   const suggestBlock = document.getElementById('sheroSuggestMood')?.parentElement;
   const feedbackBlock = document.getElementById('sheroFeedbackMood')?.parentElement;
   const suggestMoodEl = document.getElementById('sheroSuggestMood');
@@ -900,6 +1007,7 @@ function renderShero() {
 
   if (isSheroCleared()) {
     iconBtn.classList.add('off');
+    if (askAiBtn) askAiBtn.textContent = 'Ask AI instead';
     suggestBlock.classList.remove('hidden');
     feedbackBlock.classList.add('hidden');
     suggestMoodEl.textContent = 'Suggestion';
@@ -911,13 +1019,29 @@ function renderShero() {
   const suggestMessage = getSheroMessage('suggest');
   const feedbackMessage = getSheroMessage('feedback');
   iconBtn.classList.remove('off');
+  if (askAiBtn) askAiBtn.textContent = 'Ask AI about this';
   suggestBlock.classList.remove('hidden');
   feedbackBlock.classList.remove('hidden');
   suggestMoodEl.textContent = 'Suggestion';
-  suggestTextEl.textContent = suggestMessage.text;
+  suggestTextEl.innerHTML = formatSheroMessageText(suggestMessage);
   feedbackMoodEl.textContent = 'Feedback';
-  feedbackTextEl.textContent = feedbackMessage.text;
+  feedbackTextEl.innerHTML = formatSheroMessageText(feedbackMessage);
   renderSheroQuickPick();
+}
+
+function askAIAboutShero() {
+  const suggestText = document.getElementById('sheroSuggestText')?.innerText?.trim();
+  const feedbackText = document.getElementById('sheroFeedbackText')?.innerText?.trim();
+  const prompt = suggestText && !/no active shero messages/i.test(suggestText)
+    ? `Shero suggested: "${suggestText}"${feedbackText ? ` Feedback: "${feedbackText}"` : ''} Explain this and give me a simple workout and recovery plan based on my data.`
+    : 'Review my workout history and tell me what to train next and how to recover.';
+
+  showPage('aiPage', document.getElementById('bn_ai'));
+  const input = document.getElementById('chatInputField');
+  if (!input) return;
+  input.value = prompt;
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
 }
 
 function initShero() {
@@ -955,12 +1079,25 @@ function openMuscle(muscle) {
   document.getElementById('modalDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const list = document.getElementById('exerciseList');
   list.innerHTML = '';
-  (EXERCISES[muscle] || []).forEach(ex => {
+  const exerciseUsageCounts = allSessions
+    .filter(session => session.muscle === muscle)
+    .reduce((counts, session) => {
+      counts[session.exercise] = (counts[session.exercise] || 0) + 1;
+      return counts;
+    }, {});
+  const sortedExercises = [...(EXERCISES[muscle] || [])].sort((a, b) => {
+    const aCount = exerciseUsageCounts[a] || 0;
+    const bCount = exerciseUsageCounts[b] || 0;
+    if (bCount !== aCount) return bCount - aCount;
+    return a.localeCompare(b);
+  });
+  sortedExercises.forEach(ex => {
     const pr = getPR(ex);
+    const usageCount = exerciseUsageCounts[ex] || 0;
     const wrapper = document.createElement('div');
     const d = document.createElement('div');
     d.className = 'exCard';
-    d.innerHTML = `<h4>${ex}${pr ? `<span class="prBadge">PR: ${pr.weight}lbs × ${pr.reps}</span>` : ''}</h4><p>Click to log sets</p>`;
+    d.innerHTML = `<h4>${ex}${pr ? `<span class="prBadge">PR: ${pr.weight}lbs × ${pr.reps}</span>` : ''}</h4><p>${usageCount > 0 ? `${usageCount} log${usageCount !== 1 ? 's' : ''}` : 'Click to log sets'}</p>`;
     const logDiv = document.createElement('div');
     logDiv.className = 'inlineLog hidden';
     logDiv.id = `log_${ex.replace(/\s+/g, '_')}`;
@@ -1084,14 +1221,68 @@ function showPRCelebration(exercise, weight) {
 
 // ─── HISTORY ──────────────────────────────────────────────────────────────────
 let histCalYear, histCalMonth;
+let historyFilters = { group: 'all', time: 'all' };
+
+function getHistoryFilteredSessions() {
+  let sessions = [...allSessions];
+
+  if (historyFilters.group !== 'all') {
+    const groupMap = {
+      chest: ['Chest'],
+      back: ['Lats', 'Traps', 'Lower Back'],
+      legs: ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves'],
+      arms: ['Biceps', 'Triceps', 'Forearms'],
+      shoulders: ['Shoulders'],
+      core: ['Abs']
+    };
+    const allowedMuscles = groupMap[historyFilters.group] || [];
+    sessions = sessions.filter(s => allowedMuscles.includes(s.muscle));
+  }
+
+  if (historyFilters.time === 'thisWeek') {
+    const { monday, sunday } = getCurrentWeekWindow();
+    sessions = sessions.filter(s => {
+      const d = new Date(s.date);
+      return d >= monday && d <= sunday;
+    });
+  } else if (historyFilters.time === 'lastMonth') {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 30);
+    start.setHours(0, 0, 0, 0);
+    sessions = sessions.filter(s => new Date(s.date) >= start);
+  }
+
+  return sessions;
+}
+
+function updateHistoryFilterChips() {
+  document.querySelectorAll('.historyFilterChip').forEach(chip => chip.classList.remove('active'));
+  document.getElementById(`histGroup_${historyFilters.group}`)?.classList.add('active');
+  document.getElementById(`histTime_${historyFilters.time}`)?.classList.add('active');
+}
+
+function setHistoryGroupFilter(group) {
+  historyFilters.group = group;
+  renderHistory();
+}
+
+function setHistoryTimeFilter(time) {
+  historyFilters.time = time;
+  renderHistory();
+}
 
 function renderHistory() {
   const now = new Date();
   if (!histCalYear) { histCalYear = now.getFullYear(); histCalMonth = now.getMonth(); }
+  const filteredSessions = getHistoryFilteredSessions();
+  updateHistoryFilterChips();
   renderHistoryCalendar();
-  document.getElementById('historyDayDetail').innerHTML = allSessions.length
-    ? '<div class="histSelectDay">Select a day to view workouts</div>'
-    : '<div class="histSelectDay">No workouts logged yet. Tap a muscle group on Body Map to log your first session.</div>';
+  document.getElementById('historyDayDetail').innerHTML = filteredSessions.length
+    ? '<div class="histSelectDay"><strong>Select a day</strong><span>See workouts, sets, and volume here.</span></div>'
+    : allSessions.length
+      ? '<div class="histSelectDay"><strong>No matches</strong><span>Try a different muscle or time filter.</span></div>'
+      : '<div class="histSelectDay"><strong>No workouts yet</strong><span>Log your first session from the Body Map.</span></div>';
 }
 
 function histCalPrev() { histCalMonth--; if (histCalMonth < 0) { histCalMonth = 11; histCalYear--; } renderHistoryCalendar(); }
@@ -1102,7 +1293,8 @@ function renderHistoryCalendar() {
   const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   document.getElementById('histCalMonthLabel').textContent = `${MONTHS[histCalMonth]} ${histCalYear}`;
   const workoutMap = {};
-  allSessions.forEach(s => {
+  const filteredSessions = getHistoryFilteredSessions();
+  filteredSessions.forEach(s => {
     const key = new Date(s.date).toLocaleDateString('en-CA');
     if (!workoutMap[key]) workoutMap[key] = { sessions: [], sets: 0 };
     workoutMap[key].sessions.push(s);
@@ -1119,6 +1311,7 @@ function renderHistoryCalendar() {
     const dateKey = `${histCalYear}-${String(histCalMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const el = document.createElement('div');
     el.className = 'calDay histCalDay';
+    el.dataset.dateKey = dateKey;
     if (dateKey === today) el.classList.add('today');
     const dayNum = document.createElement('span');
     dayNum.textContent = d;
@@ -1138,27 +1331,46 @@ function renderHistoryCalendar() {
 
 function showHistoryDay(dateKey, sessions) {
   document.querySelectorAll('.histCalDay').forEach(el => el.classList.remove('selectedDay'));
+  document.querySelector(`.histCalDay[data-date-key="${dateKey}"]`)?.classList.add('selectedDay');
   const d = new Date(dateKey + 'T12:00:00');
-  const dayNum = d.getDate();
-  const allDays = document.querySelectorAll('.histCalDay');
-  if (allDays[dayNum - 1]) allDays[dayNum - 1].classList.add('selectedDay');
   const detail = document.getElementById('historyDayDetail');
   const dateLabel = d.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
   const sortedSessions = [...sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const totalSets = sortedSessions.reduce((sum, session) => sum + session.sets.length, 0);
+  const totalVolume = sortedSessions.reduce((sum, session) => sum + session.sets.reduce((setSum, set) => setSum + (parseFloat(set.weight || 0) * parseInt(set.reps || 0)), 0), 0);
+
   detail.innerHTML = `
-    <div class="histDayHeader">${dateLabel}</div>
-    ${sortedSessions.map(s => `
-      <div class="sessionCard" id="session_${s._id}">
-        <div class="sDateRow">
-          <div class="sDate">${new Date(s.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
-          <button class="deleteBtn" onclick="deleteSession('${s._id}')">🗑 Delete</button>
+    <div class="histDayPanel">
+      <div class="histDayTop">
+        <div class="histDayHeader">${dateLabel}</div>
+        <div class="histDayMeta">
+          <span class="histMetaChip">${sortedSessions.length} workout${sortedSessions.length !== 1 ? 's' : ''}</span>
+          <span class="histMetaChip">${totalSets} sets</span>
         </div>
-        <div class="sTitle">${s.muscle} — ${s.exercise}</div>
-        <div class="setLog"><table>
-          <tr><th>Set</th><th>Weight (lbs)</th><th>Reps</th><th>Volume</th></tr>
-          ${s.sets.map((set, i) => `<tr><td>${i+1}</td><td>${set.weight} lbs</td><td>${set.reps}</td><td>${(parseFloat(set.weight||0)*parseInt(set.reps||0)).toFixed(0)}</td></tr>`).join('')}
-        </table></div>
-      </div>`).join('')}`;
+      </div>
+      ${sortedSessions.map(s => {
+        const sessionVolume = s.sets.reduce((sum, set) => sum + (parseFloat(set.weight || 0) * parseInt(set.reps || 0)), 0);
+        return `
+          <div class="sessionCard historySessionCard" id="session_${s._id}">
+            <div class="historySessionHead">
+              <div>
+                <div class="sDate">${new Date(s.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                <div class="sTitle">${s.exercise}</div>
+                <div class="sSubtitle">${s.muscle}</div>
+              </div>
+              <button class="deleteBtn" onclick="deleteSession('${s._id}')">🗑 Delete</button>
+            </div>
+            <div class="setLog"><table>
+              <tr><th>Set</th><th>Weight</th><th>Reps</th><th>Volume</th></tr>
+              ${s.sets.map((set, i) => {
+                const weight = parseFloat(set.weight || 0);
+                const reps = parseInt(set.reps || 0);
+                return `<tr><td>${i + 1}</td><td>${weight > 0 ? `${weight} lbs` : '—'}</td><td>${reps || '—'}</td><td>${(weight * reps).toFixed(0)}</td></tr>`;
+              }).join('')}
+            </table></div>
+          </div>`;
+      }).join('')}
+    </div>`;
 }
 
 async function deleteSession(sessionId) {
@@ -1177,8 +1389,7 @@ async function deleteSession(sessionId) {
     hideLoading();
     if (!res.ok) throw new Error('Failed');
     allSessions = allSessions.filter(s => s._id !== sessionId);
-    updateHeatmap(); updateStreak(); renderHistoryCalendar();
-    document.getElementById('historyDayDetail').innerHTML = '<div class="histSelectDay">Select a day to view workouts</div>';
+    updateHeatmap(); updateStreak(); renderHistory();
   } catch (err) { hideLoading(); alert('Could not delete. Is the server running?'); }
 }
 
@@ -1190,14 +1401,29 @@ function renderProgress() {
   document.getElementById('bestStreakNum').textContent = bestStreak;
   renderCalendar();
   renderWeeklyLoad();
-  const exes = [...new Set(allSessions.map(s => s.exercise))];
+
+  const exerciseStats = {};
+  allSessions.forEach(session => {
+    if (!exerciseStats[session.exercise]) exerciseStats[session.exercise] = { count: 0, lastUsed: 0 };
+    exerciseStats[session.exercise].count += 1;
+    exerciseStats[session.exercise].lastUsed = Math.max(exerciseStats[session.exercise].lastUsed, new Date(session.date).getTime());
+  });
+
+  const exes = Object.keys(exerciseStats).sort((a, b) =>
+    exerciseStats[b].count - exerciseStats[a].count ||
+    exerciseStats[b].lastUsed - exerciseStats[a].lastUsed ||
+    a.localeCompare(b)
+  );
+
   const sel = document.getElementById('chartExSelect');
   const chartCanvas = document.getElementById('progressChart');
   let emptyEl = document.getElementById('progressEmptyState');
+
   if (!allSessions.length) {
     sel.innerHTML = '';
     sel.classList.add('hidden');
     chartCanvas.classList.add('hidden');
+    document.getElementById('progressChartNoData')?.classList.add('hidden');
     if (progressChart) { progressChart.destroy(); progressChart = null; }
     if (!emptyEl) {
       emptyEl = document.createElement('div');
@@ -1206,12 +1432,17 @@ function renderProgress() {
       chartCanvas.insertAdjacentElement('afterend', emptyEl);
     }
     emptyEl.textContent = 'No progress data yet. Log a few workouts to start tracking trends.';
+    updateChartMetricChips();
     return;
   }
+
+  const previousValue = sel.value;
   sel.classList.remove('hidden');
   chartCanvas.classList.remove('hidden');
   if (emptyEl) emptyEl.remove();
   sel.innerHTML = exes.map(e => `<option>${e}</option>`).join('');
+  sel.value = previousValue && exes.includes(previousValue) ? previousValue : exes[0];
+  updateChartMetricChips();
   renderChart();
 }
 
@@ -1281,14 +1512,7 @@ function weekPrev() { weekOffset--; renderWeeklyLoad(); }
 function weekNext() { if (weekOffset < 0) { weekOffset++; renderWeeklyLoad(); } }
 
 function renderWeeklyLoad() {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7) + (weekOffset * 7));
-  monday.setHours(0, 0, 0, 0);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  sunday.setHours(23, 59, 59, 999);
+  const { monday, sunday } = getCurrentWeekWindow(weekOffset);
   const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   document.getElementById('weekLabel').textContent = `${fmt(monday)} – ${fmt(sunday)}`;
   const weekSessions = allSessions.filter(s => { const d = new Date(s.date); return d >= monday && d <= sunday; });
@@ -1307,17 +1531,117 @@ function renderWeeklyLoad() {
   }).join('');
 }
 
+function updateChartMetricChips() {
+  document.querySelectorAll('.chartMetricChip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.metric === chartMetric);
+  });
+  document.querySelectorAll('.chartRangeChip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.range === chartRange);
+  });
+}
+
+function setChartMetric(metric) {
+  if (!['volume', 'maxWeight', 'reps'].includes(metric)) return;
+  chartMetric = metric;
+  updateChartMetricChips();
+  renderChart();
+}
+
+function setChartRange(range) {
+  if (!['7d', '30d', 'all'].includes(range)) return;
+  chartRange = range;
+  updateChartMetricChips();
+  renderChart();
+}
+
 function renderChart() {
   const ex = document.getElementById('chartExSelect').value;
+  const titleEl = document.getElementById('progressChartTitle');
+  const noDataEl = document.getElementById('progressChartNoData');
+  const chartCanvas = document.getElementById('progressChart');
   if (!ex) return;
-  const sessions = allSessions.filter(s => s.exercise === ex).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const cutoff = new Date();
+  cutoff.setHours(0, 0, 0, 0);
+  if (chartRange === '7d') cutoff.setDate(cutoff.getDate() - 6);
+  if (chartRange === '30d') cutoff.setDate(cutoff.getDate() - 29);
+
+  const sessions = allSessions
+    .filter(s => s.exercise === ex)
+    .filter(s => chartRange === 'all' || new Date(s.date) >= cutoff)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
   const labels = sessions.map(s => new Date(s.date).toLocaleDateString());
-  const data = sessions.map(s => s.sets.reduce((sum, set) => sum + parseFloat(set.weight || 0) * parseInt(set.reps || 0), 0));
-  if (progressChart) progressChart.destroy();
+  const metricConfig = {
+    volume: {
+      title: 'Volume Over Time',
+      label: 'Total Volume (lbs·reps)',
+      color: '#e94560',
+      background: 'rgba(233,69,96,.15)',
+      getValue: session => session.sets.reduce((sum, set) => sum + parseFloat(set.weight || 0) * parseInt(set.reps || 0), 0)
+    },
+    maxWeight: {
+      title: 'Max Weight Over Time',
+      label: 'Max Weight (lbs)',
+      color: '#f39c12',
+      background: 'rgba(243,156,18,.15)',
+      getValue: session => Math.max(...session.sets.map(set => parseFloat(set.weight || 0)), 0)
+    },
+    reps: {
+      title: 'Reps Over Time',
+      label: 'Total Reps',
+      color: '#2ecc71',
+      background: 'rgba(46,204,113,.15)',
+      getValue: session => session.sets.reduce((sum, set) => sum + parseInt(set.reps || 0), 0)
+    }
+  }[chartMetric] || {
+    title: 'Volume Over Time',
+    label: 'Total Volume (lbs·reps)',
+    color: '#e94560',
+    background: 'rgba(233,69,96,.15)',
+    getValue: session => session.sets.reduce((sum, set) => sum + parseFloat(set.weight || 0) * parseInt(set.reps || 0), 0)
+  };
+
+  const rangeLabel = chartRange === '7d' ? ' · Last 7 Days' : chartRange === '30d' ? ' · Last 30 Days' : ' · All Time';
+  if (titleEl) titleEl.textContent = metricConfig.title + rangeLabel;
+  const data = sessions.map(metricConfig.getValue);
+
+  if (progressChart) {
+    progressChart.destroy();
+    progressChart = null;
+  }
+
+  if (!sessions.length) {
+    if (noDataEl) noDataEl.classList.remove('hidden');
+    if (chartCanvas) chartCanvas.classList.add('hidden');
+    return;
+  }
+
+  if (noDataEl) noDataEl.classList.add('hidden');
+  if (chartCanvas) chartCanvas.classList.remove('hidden');
   progressChart = new Chart(document.getElementById('progressChart'), {
     type: 'line',
-    data: { labels, datasets: [{ label: 'Total Volume (lbs·reps)', data, borderColor: '#e94560', backgroundColor: 'rgba(233,69,96,.15)', tension: .3, fill: true, pointBackgroundColor: '#e94560' }] },
-    options: { responsive: true, plugins: { legend: { labels: { color: '#aaa' } } }, scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, grid: { color: '#222' } } } }
+    data: {
+      labels,
+      datasets: [{
+        label: metricConfig.label,
+        data,
+        borderColor: metricConfig.color,
+        backgroundColor: metricConfig.background,
+        tension: .3,
+        fill: true,
+        pointBackgroundColor: metricConfig.color,
+        pointBorderColor: metricConfig.color
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#aaa' } } },
+      scales: {
+        x: { ticks: { color: '#666' } },
+        y: { beginAtZero: true, ticks: { color: '#666' }, grid: { color: '#222' } }
+      }
+    }
   });
 }
 
@@ -1495,8 +1819,8 @@ function updateFreezeDisplay() {
   const el = document.getElementById('freezeTokenDisplay');
   if (!el) return;
   const tokens = getFreezeTokens();
-  const icons = '❄️'.repeat(tokens) || '—';
-  el.innerHTML = `<div class="freezeDisplay"><span class="freezeLabel">Streak Freeze Tokens</span><span class="freezeIcons">${icons}</span><span class="freezeCount">${tokens} / 2 remaining</span></div>`;
+  const icons = tokens > 0 ? '❄️' : '—';
+  el.innerHTML = `<div class="freezeDisplay"><span class="freezeLabel">Streak Freeze Tokens</span><span class="freezeIcons">${icons}</span><span class="freezeCount">${tokens} available +1 every 30 streak days</span></div>`;
 }
 
 
@@ -1508,7 +1832,7 @@ function toggleHeightUnit() {
 
 function loadAbout() {
   const data = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
-  const hasData = data.name || data.age || data.heightCm || data.heightFt || data.weight || data.goal;
+  const hasData = data.name || data.age || data.heightCm || data.heightFt || data.weight || data.goal || data.weekStart;
   loadProfileImage();
   if (hasData) {
     document.getElementById('aboutViewMode').classList.remove('hidden');
@@ -1528,6 +1852,7 @@ function loadAbout() {
   if (data.weight) document.getElementById('aboutWeight').value = data.weight;
   if (data.weightUnit) document.getElementById('weightUnit').value = data.weightUnit;
   if (data.goal) document.getElementById('aboutGoal').value = data.goal;
+  document.getElementById('aboutWeekStart').value = data.weekStart || 'monday';
   if (data.heightUnit) { document.getElementById('heightUnit').value = data.heightUnit; toggleHeightUnit(); }
   renderAboutStats();
 }
@@ -1541,17 +1866,20 @@ function renderAboutView(data) {
   let height = '—';
   if (data.heightUnit === 'ft' && data.heightFt) height = `${data.heightFt}ft ${data.heightIn || 0}in`;
   else if (data.heightCm) height = `${data.heightCm} cm`;
+  const weekStart = (data.weekStart || 'monday');
+  const weekStartLabel = weekStart.charAt(0).toUpperCase() + weekStart.slice(1);
   const fields = [
     { label: 'Name', value: data.name || '—' },
     { label: 'Age', value: data.age ? data.age + ' yrs' : '—' },
     { label: 'Height', value: height },
     { label: 'Weight', value: data.weight ? data.weight + ' ' + (data.weightUnit || 'lbs') : '—' },
     { label: 'Goal', value: data.goal || '—' },
+    { label: 'Week Start', value: `<span class="weekStartChip">${weekStartLabel}</span>`, isHtml: true },
   ];
   document.getElementById('aboutViewGrid').innerHTML = fields.map(f => `
-    <div class="aboutViewItem">
+    <div class="aboutViewItem ${f.label === 'Week Start' ? 'aboutViewItemHighlight' : ''}">
       <div class="aboutViewLabel">${f.label}</div>
-      <div class="aboutViewValue">${f.value}</div>
+      <div class="aboutViewValue">${f.isHtml ? f.value : f.value}</div>
     </div>`).join('');
 }
 
@@ -1566,13 +1894,18 @@ function saveAbout() {
     heightIn: document.getElementById('aboutHeightIn').value,
     weight: document.getElementById('aboutWeight').value,
     weightUnit: document.getElementById('weightUnit').value,
-    goal: document.getElementById('aboutGoal').value
+    goal: document.getElementById('aboutGoal').value,
+    weekStart: document.getElementById('aboutWeekStart').value || 'monday'
   };
   localStorage.setItem('about_' + currentUser, JSON.stringify(data));
   document.getElementById('aboutEditMode').classList.add('hidden');
   document.getElementById('aboutViewMode').classList.remove('hidden');
   renderAboutView(data);
   renderAboutStats();
+  updateHeatmap();
+  renderProgress();
+  renderShero();
+  renderBadges();
   alert('Profile saved! ✅');
 }
 
@@ -1585,8 +1918,8 @@ function renderAboutStats() {
   document.getElementById('aboutStats').innerHTML = `
     <div class="aboutStatsRow">
       <div class="aboutStatCard aboutStatCardWorkouts"><div class="aboutStatIcon">🏋️</div><div class="aboutStatVal">${totalWorkouts}</div><div class="aboutStatLabel">Workouts</div><div class="aboutStatMeta">All Time</div></div>
-      <div class="aboutStatCard aboutStatCardStreak"><div class="aboutStatIcon">📦</div><div class="aboutStatVal">${totalSets}</div><div class="aboutStatLabel">Total Sets</div><div class="aboutStatMeta">Logged</div></div>
-      <div class="aboutStatCard aboutStatCardBest"><div class="aboutStatIcon">⭐</div><div class="aboutStatVal">${bestStreak}</div><div class="aboutStatLabel">Best Streak</div></div>
+      <div class="aboutStatCard aboutStatCardStreak"><div class="aboutStatIcon">📦</div><div class="aboutStatVal">${totalSets}</div><div class="aboutStatLabel">Total Sets</div><div class="aboutStatMeta">Volume Logged</div></div>
+      <div class="aboutStatCard aboutStatCardBest"><div class="aboutStatIcon">⭐</div><div class="aboutStatVal">${bestStreak}</div><div class="aboutStatLabel">Best Streak</div><div class="aboutStatMeta">Days</div></div>
     </div>
     <div class="followCountsRow">
       <div class="followCountsGrid">
@@ -1601,9 +1934,97 @@ function renderAboutStats() {
 // ─── AI TRAINER ───────────────────────────────────────────────────────────────
 let chatHistory = [];
 
+function formatWorkoutSessionForAI(session) {
+  const date = new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const setSummary = (session.sets || []).map((set, index) => {
+    const weight = parseFloat(set.weight || 0);
+    const reps = parseInt(set.reps || 0);
+    if (weight > 0 && reps > 0) return `set ${index + 1}: ${weight} lbs x ${reps}`;
+    if (reps > 0) return `set ${index + 1}: ${reps} reps`;
+    if (weight > 0) return `set ${index + 1}: ${weight} lbs`;
+    return `set ${index + 1}`;
+  }).join(', ');
+
+  return `${date} — ${session.muscle} / ${session.exercise} — ${(session.sets || []).length} set${(session.sets || []).length !== 1 ? 's' : ''}${setSummary ? ` (${setSummary})` : ''}`;
+}
+
+function formatGoalForAI(goal) {
+  if (!goal) return '';
+  if (goal.type === 'strength') return `${goal.exercise || 'Strength goal'} target ${goal.target || 0}${goal.unit || ''} by ${goal.targetDate}`;
+  if (goal.type === 'weight') return `Body weight goal from ${goal.current || 0} to ${goal.target || 0} by ${goal.targetDate}`;
+  if (goal.type === 'cardio') return `${goal.activity || 'Cardio'} target ${goal.target || ''} by ${goal.targetDate}`;
+  if (goal.type === 'custom') return `${goal.name || 'Custom goal'} by ${goal.targetDate}`;
+  return `${goal.type || 'Goal'} by ${goal.targetDate || 'no date'}`;
+}
+
 function getContext() {
-  const recent = allSessions.slice(-5).map(s => `${s.muscle} - ${s.exercise}`).join(', ');
-  return `The user's name is ${currentUser}. Their recent workouts: ${recent || 'No workouts logged yet'}.`;
+  const about = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
+  const goals = typeof getGoals === 'function' ? getGoals() : [];
+  const restDays = typeof getRestDays === 'function' ? getRestDays() : [];
+  const freezeDays = typeof getFreezeDays === 'function' ? getFreezeDays() : [];
+  const weeklyCounts = typeof getWeeklyMuscleSetCounts === 'function' ? getWeeklyMuscleSetCounts() : {};
+  const weekWindow = typeof getCurrentWeekWindow === 'function' ? getCurrentWeekWindow() : null;
+  const totalSets = allSessions.reduce((sum, session) => sum + (session.sets?.length || 0), 0);
+  const workoutDays = new Set(allSessions.map(session => new Date(session.date).toLocaleDateString('en-CA'))).size;
+
+  const allTimeMuscleSets = allSessions.reduce((acc, session) => {
+    acc[session.muscle] = (acc[session.muscle] || 0) + (session.sets?.length || 0);
+    return acc;
+  }, {});
+
+  const weeklySummary = Object.entries(weeklyCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([muscle, sets]) => `${muscle}: ${sets} sets`)
+    .join(', ') || 'No workouts in the current weekly cycle.';
+
+  const allTimeSummary = Object.entries(allTimeMuscleSets)
+    .sort((a, b) => b[1] - a[1])
+    .map(([muscle, sets]) => `${muscle}: ${sets} sets`)
+    .join(', ') || 'No all-time workout data yet.';
+
+  const activeGoals = goals
+    .filter(goal => !goal.completed)
+    .map(formatGoalForAI)
+    .filter(Boolean)
+    .join(' | ') || 'No active goals.';
+
+  const completedGoals = goals
+    .filter(goal => goal.completed)
+    .map(formatGoalForAI)
+    .filter(Boolean)
+    .join(' | ') || 'No completed goals yet.';
+
+  const fullHistory = [...allSessions]
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .map(formatWorkoutSessionForAI)
+    .join('\n') || 'No workouts logged yet.';
+
+  const profileSummary = [
+    about.name ? `Name: ${about.name}` : `Username: ${currentUser}`,
+    about.age ? `Age: ${about.age}` : '',
+    about.goal ? `Goal: ${about.goal}` : '',
+    about.weight ? `Weight: ${about.weight} ${about.weightUnit || 'lbs'}` : '',
+    about.heightCm ? `Height: ${about.heightCm} cm` : (about.heightFt ? `Height: ${about.heightFt}ft ${about.heightIn || 0}in` : ''),
+    about.weekStart ? `Week starts on: ${about.weekStart}` : ''
+  ].filter(Boolean).join(' | ');
+
+  const streak = typeof getStreak === 'function' ? getStreak() : 0;
+  const bestStreak = typeof getBestStreak === 'function' ? getBestStreak() : 0;
+
+  return [
+    'You are GymBuddy AI. Use the following user data to personalize workout, recovery, nutrition, and fitness answers.',
+    `Profile: ${profileSummary || `Username: ${currentUser}`}`,
+    `Training stats: ${allSessions.length} total workouts, ${totalSets} total sets, ${workoutDays} active workout days, current streak ${streak}, best streak ${bestStreak}.`,
+    `Current weekly cycle: ${weekWindow ? `${weekWindow.monday.toLocaleDateString('en-US')} to ${weekWindow.sunday.toLocaleDateString('en-US')}` : 'Not available'}.`,
+    `Weekly cycle muscle summary: ${weeklySummary}`,
+    `All-time muscle summary: ${allTimeSummary}`,
+    `Rest days logged: ${restDays.length ? restDays.join(', ') : 'None'}`,
+    `Freeze days logged: ${freezeDays.length ? freezeDays.join(', ') : 'None'}`,
+    `Active goals: ${activeGoals}`,
+    `Completed goals: ${completedGoals}`,
+    'Full workout history (newest first):',
+    fullHistory
+  ].join('\n');
 }
 
 async function sendMessage() {
@@ -1614,23 +2035,143 @@ async function sendMessage() {
   appendMessage(msg, 'user');
   chatHistory.push({ role: 'user', content: msg });
   const typing = appendMessage('Typing...', 'bot', true);
+
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
     const res = await fetch(API + '/ai/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ message: msg, history: chatHistory.slice(0, -1), context: getContext() })
     });
-    const data = await res.json();
+
+    const contentType = res.headers.get('content-type') || '';
+    let data = null;
+
+    if (contentType.includes('application/json')) {
+      data = await res.json();
+    } else {
+      const text = await res.text();
+      data = { error: text || `Request failed (${res.status})` };
+    }
+
+    const reply = typeof data?.reply === 'string' ? data.reply.trim() : '';
+    if (!res.ok || !reply) {
+      throw new Error(data?.error || data?.message || data?.reply || `AI is unavailable right now (${res.status}).`);
+    }
+
     typing.remove();
-    appendMessage(data.reply, 'bot');
-    chatHistory.push({ role: 'assistant', content: data.reply });
+    appendMessage(reply, 'bot');
+    chatHistory.push({ role: 'assistant', content: reply });
   } catch (err) {
     typing.remove();
-    appendMessage('Sorry I could not connect. Is the server running?', 'bot');
+    const rawMessage = err?.message || '';
+    const friendlyMessage = /googlegenerativeai|404|not found|generatecontent|unavailable|request failed|500/i.test(rawMessage)
+      ? 'AI is temporarily unavailable. Please try again shortly.'
+      : (rawMessage || 'Sorry, AI is unavailable right now. Please try again shortly.');
+    appendMessage(friendlyMessage, 'bot');
   }
 }
 
 function askQuick(q) { document.getElementById('chatInputField').value = q; sendMessage(); }
+
+function escapeChatHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatChatMessage(text, sender = 'bot', isTyping = false) {
+  const safeText = escapeChatHtml(text).replace(/\r\n/g, '\n').trim();
+  if (!safeText) return '';
+  if (sender !== 'bot' || isTyping) return safeText.replace(/\n/g, '<br>');
+
+  const enhanced = safeText
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.*?)__/g, '<strong>$1</strong>')
+    .replace(/(^|\W)\*(?!\s)([^*\n]+?)\*(?=\W|$)/g, '$1<strong>$2</strong>');
+
+  const lines = enhanced.split('\n').map(line => line.trim()).filter(Boolean);
+  if (!lines.length) return '';
+
+  const blocks = [];
+  let listItems = [];
+  let listType = null;
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    const tag = listType === 'ordered' ? 'ol' : 'ul';
+    const className = listType === 'ordered' ? 'chatOrderedList' : 'chatList';
+    blocks.push(`<${tag} class="${className}">${listItems.join('')}</${tag}>`);
+    listItems = [];
+    listType = null;
+  };
+
+  lines.forEach(line => {
+    const bulletMatch = line.match(/^[-*•]\s+(.*)$/);
+    const orderedMatch = line.match(/^\d+[.)]\s+(.*)$/);
+
+    if (bulletMatch) {
+      if (listType && listType !== 'unordered') flushList();
+      listType = 'unordered';
+      listItems.push(`<li>${bulletMatch[1]}</li>`);
+      return;
+    }
+
+    if (orderedMatch) {
+      if (listType && listType !== 'ordered') flushList();
+      listType = 'ordered';
+      listItems.push(`<li>${orderedMatch[1]}</li>`);
+      return;
+    }
+
+    flushList();
+    blocks.push(`<div class="chatParagraph">${line}</div>`);
+  });
+
+  flushList();
+  return blocks.join('');
+}
+
+async function copyChatText(button, text) {
+  const value = String(text || '').trim();
+  if (!value) return;
+
+  const setState = (label) => {
+    button.textContent = label;
+    setTimeout(() => {
+      if (button) button.textContent = 'Copy';
+    }, 1400);
+  };
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      setState('Copied');
+      return;
+    }
+
+    const area = document.createElement('textarea');
+    area.value = value;
+    area.setAttribute('readonly', 'true');
+    area.style.position = 'absolute';
+    area.style.left = '-9999px';
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand('copy');
+    area.remove();
+    setState('Copied');
+  } catch {
+    setState('Failed');
+  }
+}
 
 function appendMessage(text, sender, isTyping = false) {
   const box = document.getElementById('chatBox');
@@ -1638,7 +2179,27 @@ function appendMessage(text, sender, isTyping = false) {
   msg.className = `chatMsg ${sender}`;
   const bubble = document.createElement('div');
   bubble.className = `chatBubble${isTyping ? ' typing' : ''}`;
-  bubble.textContent = text;
+
+  const body = document.createElement('div');
+  body.className = 'chatBubbleBody';
+  body.innerHTML = formatChatMessage(text, sender, isTyping);
+  bubble.appendChild(body);
+
+  if (sender === 'bot' && !isTyping) {
+    const actions = document.createElement('div');
+    actions.className = 'chatBubbleActions';
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'chatCopyBtn';
+    copyBtn.textContent = 'Copy';
+    copyBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      copyChatText(copyBtn, text);
+    });
+    actions.appendChild(copyBtn);
+    bubble.appendChild(actions);
+  }
+
   msg.appendChild(bubble);
   box.appendChild(msg);
   box.scrollTop = box.scrollHeight;
@@ -2300,23 +2861,291 @@ if (typeof loadSessions === 'function') {
 
 const originalUpdateStreak = updateStreak;
 updateStreak = function(...args) {
+  syncFreezeRewards();
   const result = originalUpdateStreak.apply(this, args);
   renderShero();
-  return result;
-};
-
-updateFreezeDisplay = function() {
-  const el = document.getElementById('freezeTokenDisplay');
-  if (!el) return;
-  const tokens = getFreezeTokens();
-  const icons = tokens > 0 ? '❄️' : '—';
-  el.innerHTML = `<div class="freezeDisplay"><span class="freezeLabel">Streak Freeze Tokens</span><span class="freezeIcons">${icons}</span><span class="freezeCount">${tokens} available +1 every 30 streak days</span></div>`;
-};
-
-const updateStreakWithShero = updateStreak;
-updateStreak = function(...args) {
-  syncFreezeRewards();
-  const result = updateStreakWithShero.apply(this, args);
   updateFreezeDisplay();
   return result;
 };
+
+// ─── GOALS ───────────────────────────────────────────────────────────────────
+function getGoals() {
+  return JSON.parse(localStorage.getItem('goals_' + currentUser) || '[]');
+}
+
+function updateGoalFields() {
+  const goalType = document.getElementById('goalType')?.value;
+  const container = document.getElementById('goalFieldsContainer');
+  if (!container) return;
+  
+  if (!goalType) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  let fieldsHTML = '';
+  
+  if (goalType === 'strength') {
+    fieldsHTML = `
+      <div class="formGroup">
+        <label>Exercise</label>
+        <select id="goalExercise" onchange="updateGoalFieldLabels()">
+          <option value="">Select an exercise...</option>
+          ${Object.keys(EXERCISES).flatMap(muscle => EXERCISES[muscle]).map(ex => `<option value="${ex}">${ex}</option>`).join('')}
+        </select>
+      </div>
+      <div class="formGroup">
+        <label id="goalStrengthTargetLabel">Target Weight (lbs)</label>
+        <input type="number" id="goalStrengthTarget" placeholder="e.g., 225" min="0"/>
+      </div>`;
+  } else if (goalType === 'weight') {
+    fieldsHTML = `
+      <div class="formGroup">
+        <label>Current Weight (${document.getElementById('weightUnit')?.value || 'lbs'})</label>
+        <input type="number" id="goalCurrentWeight" placeholder="e.g., 185" min="0"/>
+      </div>
+      <div class="formGroup">
+        <label>Target Weight (${document.getElementById('weightUnit')?.value || 'lbs'})</label>
+        <input type="number" id="goalTargetWeight" placeholder="e.g., 175" min="0"/>
+      </div>`;
+  } else if (goalType === 'cardio') {
+    fieldsHTML = `
+      <div class="formGroup">
+        <label>Activity Type</label>
+        <input type="text" id="goalActivity" placeholder="e.g., Running, Cycling"/>
+      </div>
+      <div class="formGroup">
+        <label>Target Distance/Duration</label>
+        <input type="text" id="goalCardioTarget" placeholder="e.g., 5K or 30 mins"/>
+      </div>`;
+  } else if (goalType === 'custom') {
+    fieldsHTML = `
+      <div class="formGroup">
+        <label>Goal Name</label>
+        <input type="text" id="goalCustomName" placeholder="e.g., Achieve Perfect Form"/>
+      </div>
+      <div class="formGroup">
+        <label>Description</label>
+        <textarea id="goalCustomDesc" placeholder="Describe your goal in detail..."></textarea>
+      </div>`;
+  }
+  
+  container.innerHTML = fieldsHTML;
+  updateGoalFieldLabels();
+}
+
+function updateGoalFieldLabels() {
+  const exercise = document.getElementById('goalExercise')?.value;
+  const label = document.getElementById('goalStrengthTargetLabel');
+  const input = document.getElementById('goalStrengthTarget');
+  const isRepExercise = ['Push-Up','Pull-Up'].includes(exercise);
+  if (label) {
+    label.textContent = isRepExercise ? 'Target Reps' : 'Target Weight (lbs)';
+  }
+  if (input) {
+    input.placeholder = isRepExercise ? 'e.g., 15' : 'e.g., 225';
+    input.min = '0';
+  }
+}
+
+function saveGoal() {
+  const goalType = document.getElementById('goalType')?.value;
+  const targetDate = document.getElementById('goalDate')?.value;
+  
+  if (!goalType || !targetDate) {
+    alert('Please fill in goal type and target date.');
+    return;
+  }
+  
+  let goal = {
+    id: Date.now(),
+    type: goalType,
+    dateCreated: new Date().toISOString(),
+    targetDate: targetDate,
+    completed: false
+  };
+  
+  if (goalType === 'strength') {
+    const exercise = document.getElementById('goalExercise')?.value;
+    const target = document.getElementById('goalStrengthTarget')?.value;
+    if (!exercise || !target) { alert('Please fill in exercise and target.'); return; }
+    const isRepExercise = ['Push-Up','Pull-Up'].includes(exercise);
+    goal.exercise = exercise;
+    if (isRepExercise) {
+      goal.name = `💪 ${exercise} - ${target} reps`;
+      goal.targetReps = parseInt(target, 10);
+    } else {
+      goal.name = `💪 ${exercise} - ${target} lbs`;
+      goal.targetWeight = parseFloat(target);
+    }
+  } else if (goalType === 'weight') {
+    const current = document.getElementById('goalCurrentWeight')?.value;
+    const target = document.getElementById('goalTargetWeight')?.value;
+    if (!current || !target) { alert('Please fill in current and target weight.'); return; }
+    goal.name = `⚖️ Reach ${target} lbs`;
+    goal.currentWeight = parseFloat(current);
+    goal.targetWeight = parseFloat(target);
+  } else if (goalType === 'cardio') {
+    const activity = document.getElementById('goalActivity')?.value;
+    const target = document.getElementById('goalCardioTarget')?.value;
+    if (!activity || !target) { alert('Please fill in activity and target.'); return; }
+    goal.name = `🏃 ${activity} - ${target}`;
+    goal.activity = activity;
+    goal.cardioTarget = target;
+  } else if (goalType === 'custom') {
+    const name = document.getElementById('goalCustomName')?.value;
+    const desc = document.getElementById('goalCustomDesc')?.value;
+    if (!name || !desc) { alert('Please fill in goal name and description.'); return; }
+    goal.name = name;
+    goal.description = desc;
+  }
+  
+  const goals = getGoals();
+  goals.push(goal);
+  localStorage.setItem('goals_' + currentUser, JSON.stringify(goals));
+  
+  // Clear form
+  document.getElementById('goalType').value = '';
+  document.getElementById('goalDate').value = '';
+  document.getElementById('goalFieldsContainer').innerHTML = '';
+  updateGoalFields();
+  
+  renderGoals();
+  alert('✅ Goal added successfully!');
+}
+
+function getGoalProgress(goal) {
+  if (goal.type === 'strength') {
+    const pr = getPR(goal.exercise);
+    const isRepExercise = ['Push-Up','Pull-Up'].includes(goal.exercise);
+    if (isRepExercise) {
+      const current = pr ? pr.reps : 0;
+      const target = goal.targetReps || 0;
+      const progress = target > 0 ? Math.min((current / target) * 100, 100) : 0;
+      return { current, target, progress: Math.round(progress) };
+    }
+    const current = pr ? pr.weight : 0;
+    const target = goal.targetWeight;
+    const progress = target > 0 ? Math.min((current / target) * 100, 100) : 0;
+    return { current, target, progress: Math.round(progress) };
+  } else if (goal.type === 'weight') {
+    const current = goal.currentWeight;
+    const target = goal.targetWeight;
+    const isWeightLoss = target < current;
+    const denominator = isWeightLoss
+      ? (goal.currentWeight - target)
+      : (target - goal.currentWeight);
+    let progress = 0;
+    if (denominator > 0) {
+      if (isWeightLoss) {
+        progress = current > target ? Math.min(((current - target) / denominator) * 100, 100) : 0;
+      } else {
+        progress = current < target ? Math.min(((current - goal.currentWeight) / denominator) * 100, 100) : 0;
+      }
+    }
+    return { current, target, progress: Math.round(Math.min(progress, 100)) };
+  }
+  return { current: 0, target: 100, progress: 0 };
+}
+
+function deleteGoal(goalId) {
+  const goals = getGoals();
+  const newGoals = goals.filter(g => g.id !== goalId);
+  localStorage.setItem('goals_' + currentUser, JSON.stringify(newGoals));
+  renderGoals();
+  alert('Goal deleted.');
+}
+
+function renderGoals() {
+  const goals = getGoals();
+  const container = document.getElementById('goalsContainer');
+  if (!container) return;
+  
+  if (!goals.length) {
+    container.innerHTML = '<div class="emptyState">No goals yet. Create one to start tracking your progress! 🎯</div>';
+    return;
+  }
+  
+  goals.sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return new Date(b.dateCreated) - new Date(a.dateCreated);
+  });
+  
+  const now = new Date();
+  const goalsHTML = goals.map(goal => {
+    const { current, target, progress } = getGoalProgress(goal);
+    const targetDate = new Date(goal.targetDate);
+    const daysLeft = Math.ceil((targetDate - now) / 86400000);
+    const completedClass = goal.completed ? 'completed' : '';
+    
+    let statusText = '';
+    if (goal.completed) {
+      statusText = 'Completed';
+    } else if (daysLeft <= 0) {
+      statusText = 'Overdue';
+    } else if (daysLeft <= 7) {
+      statusText = `${daysLeft} days left`;
+    } else {
+      statusText = `${daysLeft} days left`;
+    }
+    
+    let detailText = '';
+    if (goal.type === 'strength') {
+      const isRepExercise = ['Push-Up','Pull-Up'].includes(goal.exercise);
+      detailText = isRepExercise
+        ? `${current} / ${target} reps · ${progress}% complete`
+        : `${current} / ${target} lbs · ${progress}% complete`;
+    } else if (goal.type === 'weight') {
+      detailText = `${current} / ${target} lbs`;
+    } else if (goal.type === 'cardio') {
+      detailText = goal.cardioTarget;
+    } else {
+      detailText = goal.description;
+    }
+    
+    const statusTag = !goal.completed && daysLeft <= 7
+      ? `<span class="goalStatusTag ${daysLeft <= 0 ? 'overdue' : 'dueSoon'}">${daysLeft <= 0 ? 'Overdue' : 'Due Soon'}</span>`
+      : '';
+
+    return `
+      <div class="goalSimpleCard ${completedClass}" id="goal_${goal.id}">
+        <div class="goalSimpleRow">
+          <div class="goalSimpleLeft">
+            <input type="checkbox" class="goalCheckBox" ${goal.completed ? 'checked' : ''} onchange="toggleGoalCompletion(${goal.id})"/>
+            <div class="goalSimpleTextWrap">
+              <div class="goalSimpleNameRow">
+                <div class="goalSimpleName">${goal.name}</div>
+                ${statusTag}
+              </div>
+              <div class="goalSimpleDetail">${detailText}</div>
+            </div>
+          </div>
+          <div class="goalSimpleRight">
+            ${goal.completed ? '<span class="goalDoneBadge">Done</span>' : ''}
+            <button class="goalDeleteBtn" onclick="deleteGoal(${goal.id})">🗑</button>
+          </div>
+        </div>
+        <div class="goalProgressMini"><div class="goalProgressMiniFill" style="width:${Math.max(0, Math.min(progress, 100))}%"></div></div>
+        <div class="goalSimpleStatus">${statusText}</div>
+      </div>`;
+  }).join('');
+  
+  container.innerHTML = goalsHTML;
+}
+
+function toggleGoalCompletion(goalId) {
+  const goals = getGoals();
+  const goal = goals.find(g => g.id === goalId);
+  if (goal) {
+    const wasCompleted = goal.completed;
+    goal.completed = !goal.completed;
+    localStorage.setItem('goals_' + currentUser, JSON.stringify(goals));
+    renderGoals();
+
+    if (!wasCompleted && goal.completed) {
+      launchConfetti();
+      alert(`🎉 Goal completed: ${goal.name}`);
+    }
+  }
+}
+
