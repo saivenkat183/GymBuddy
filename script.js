@@ -2267,24 +2267,32 @@ function appendMessage(text, sender, isTyping = false) {
   const bubble = document.createElement('div');
   bubble.className = `chatBubble${isTyping ? ' typing' : ''}`;
 
-  const body = document.createElement('div');
-  body.className = 'chatBubbleBody';
-  body.innerHTML = formatChatMessage(text, sender, isTyping);
-  bubble.appendChild(body);
+  if (isTyping && sender === 'bot') {
+    bubble.innerHTML = `
+      <div class="typingIndicator" aria-label="AI is typing">
+        <span class="typingLabel">Typing</span>
+        <span class="typingDots inline"><span>.</span><span>.</span><span>.</span></span>
+      </div>`;
+  } else {
+    const body = document.createElement('div');
+    body.className = 'chatBubbleBody';
+    body.innerHTML = formatChatMessage(text, sender, isTyping);
+    bubble.appendChild(body);
 
-  if (sender === 'bot' && !isTyping) {
-    const actions = document.createElement('div');
-    actions.className = 'chatBubbleActions';
-    const copyBtn = document.createElement('button');
-    copyBtn.type = 'button';
-    copyBtn.className = 'chatCopyBtn';
-    copyBtn.textContent = 'Copy';
-    copyBtn.addEventListener('click', (event) => {
-      event.stopPropagation();
-      copyChatText(copyBtn, text);
-    });
-    actions.appendChild(copyBtn);
-    bubble.appendChild(actions);
+    if (sender === 'bot') {
+      const actions = document.createElement('div');
+      actions.className = 'chatBubbleActions';
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'chatCopyBtn';
+      copyBtn.textContent = 'Copy';
+      copyBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        copyChatText(copyBtn, text);
+      });
+      actions.appendChild(copyBtn);
+      bubble.appendChild(actions);
+    }
   }
 
   msg.appendChild(bubble);
