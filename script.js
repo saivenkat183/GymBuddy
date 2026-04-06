@@ -238,6 +238,7 @@ function showPage(id, btn) {
   if (id === 'badgesPage') renderBadges();
   if (id === 'galleryPage') renderGallery();
   if (id === 'goalsPage') renderGoals();
+  if (id === 'aiPage') renderAIContextStrip();
 }
 
 // ─── BODY VIEW ────────────────────────────────────────────────────────────────
@@ -1221,12 +1222,13 @@ function showPRCelebration(exercise, weight) {
 
 // ─── HISTORY ──────────────────────────────────────────────────────────────────
 let histCalYear, histCalMonth;
-let historyFilters = { group: 'all', time: 'all' };
+let historyFilters = { groups: ['all'], time: 'all' };
 
 function getHistoryFilteredSessions() {
   let sessions = [...allSessions];
 
-  if (historyFilters.group !== 'all') {
+  const selectedGroups = Array.isArray(historyFilters.groups) ? historyFilters.groups : ['all'];
+  if (!selectedGroups.includes('all')) {
     const groupMap = {
       chest: ['Chest'],
       back: ['Lats', 'Traps', 'Lower Back'],
@@ -1235,7 +1237,7 @@ function getHistoryFilteredSessions() {
       shoulders: ['Shoulders'],
       core: ['Abs']
     };
-    const allowedMuscles = groupMap[historyFilters.group] || [];
+    const allowedMuscles = [...new Set(selectedGroups.flatMap(group => groupMap[group] || []))];
     sessions = sessions.filter(s => allowedMuscles.includes(s.muscle));
   }
 
@@ -1258,12 +1260,31 @@ function getHistoryFilteredSessions() {
 
 function updateHistoryFilterChips() {
   document.querySelectorAll('.historyFilterChip').forEach(chip => chip.classList.remove('active'));
-  document.getElementById(`histGroup_${historyFilters.group}`)?.classList.add('active');
+  const selectedGroups = Array.isArray(historyFilters.groups) ? historyFilters.groups : ['all'];
+  selectedGroups.forEach(group => {
+    document.getElementById(`histGroup_${group}`)?.classList.add('active');
+  });
   document.getElementById(`histTime_${historyFilters.time}`)?.classList.add('active');
 }
 
 function setHistoryGroupFilter(group) {
-  historyFilters.group = group;
+  let selectedGroups = Array.isArray(historyFilters.groups) ? [...historyFilters.groups] : ['all'];
+
+  if (group === 'all') {
+    historyFilters.groups = ['all'];
+    renderHistory();
+    return;
+  }
+
+  selectedGroups = selectedGroups.filter(item => item !== 'all');
+
+  if (selectedGroups.includes(group)) {
+    selectedGroups = selectedGroups.filter(item => item !== group);
+  } else {
+    selectedGroups.push(group);
+  }
+
+  historyFilters.groups = selectedGroups.length ? selectedGroups : ['all'];
   renderHistory();
 }
 
@@ -1934,6 +1955,69 @@ function renderAboutStats() {
 // ─── AI TRAINER ───────────────────────────────────────────────────────────────
 let chatHistory = [];
 
+function getAIIntroMarkup() {
+  return `
+    <div class="chatMsg bot">
+      <div class="chatBubble">
+        <div class="chatBubbleBody">
+          <div class="chatParagraph">Hi! I'm Shero AI.</div>
+          <div class="chatParagraph">Ask about workouts, recovery, diet, or your training balance.</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function setAIStatus(state = 'ready', label) {
+  const el = document.getElementById('aiStatusPill');
+  if (!el) return;
+  const safeState = ['ready', 'busy', 'offline'].includes(state) ? state : 'ready';
+  const defaultText = {
+    ready: 'AI ready',
+    busy: 'Thinking...',
+    offline: 'AI unavailable'
+  };
+  el.classList.remove('ready', 'busy', 'offline');
+  el.classList.add(safeState);
+  el.textContent = label || defaultText[safeState];
+}
+
+function renderAIContextStrip() {
+  const el = document.getElementById('aiContextStrip');
+  if (!el) return;
+
+  const about = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
+  const latest = allSessions.length
+    ? [...allSessions].sort((a, b) => new Date(b.date) - new Date(a.date))[0]
+    : null;
+  const weekSessions = typeof getCurrentWeekSessions === 'function' ? getCurrentWeekSessions() : [];
+  const goals = typeof getGoals === 'function' ? getGoals().filter(goal => !goal.completed) : [];
+  const weekStart = about.weekStart ? `${about.weekStart.charAt(0).toUpperCase() + about.weekStart.slice(1)}` : 'Monday';
+
+  const items = [
+    { label: 'Last trained', value: latest ? latest.muscle : 'No data' },
+    { label: 'This cycle', value: `${weekSessions.length} workout${weekSessions.length !== 1 ? 's' : ''}` },
+    { label: 'Goal', value: about.goal || goals[0]?.name || goals[0]?.exercise || 'Not set' },
+    { label: 'Week start', value: weekStart }
+  ];
+
+  el.innerHTML = items.map(item => `
+    <div class="aiContextItem">
+      <span class="aiContextLabel">${item.label}</span>
+      <span class="aiContextValue">${item.value}</span>
+    </div>`).join('');
+}
+
+function clearAIChat() {
+  chatHistory = [];
+  const box = document.getElementById('chatBox');
+  if (box) box.innerHTML = getAIIntroMarkup();
+  const input = document.getElementById('chatInputField');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+}
+
 function formatWorkoutSessionForAI(session) {
   const date = new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const setSummary = (session.sets || []).map((set, index) => {
@@ -2035,6 +2119,7 @@ async function sendMessage() {
   appendMessage(msg, 'user');
   chatHistory.push({ role: 'user', content: msg });
   const typing = appendMessage('Typing...', 'bot', true);
+  setAIStatus('busy');
 
   try {
     const headers = {
@@ -2065,10 +2150,12 @@ async function sendMessage() {
     }
 
     typing.remove();
+    setAIStatus('ready');
     appendMessage(reply, 'bot');
     chatHistory.push({ role: 'assistant', content: reply });
   } catch (err) {
     typing.remove();
+    setAIStatus('offline');
     const rawMessage = err?.message || '';
     const friendlyMessage = /googlegenerativeai|404|not found|generatecontent|unavailable|request failed|500/i.test(rawMessage)
       ? 'AI is temporarily unavailable. Please try again shortly.'

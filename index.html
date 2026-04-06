@@ -21,7 +21,7 @@
 <div id="authScreen">
   <div class="authBox">
     <h1>GymBuddy</h1>
-    <p>Track your gains, crush your PRs</p>
+    <p>REAL WORKOUT BEGINS WHEN YOU ARE TIRED</p>
     <div id="authMsg" class="authMsg hidden"></div>
     <input id="authUser" type="text" placeholder="Username" onkeydown="if(event.key==='Enter') doAuth()"/>
     <input id="authPass" type="password" placeholder="Password" onkeydown="if(event.key==='Enter') doAuth()"/>
@@ -191,14 +191,12 @@
           </div>
         </div>
         <div class="historyFilters">
-          <div class="historyFilterGroup historyTopRow">
+          <div class="historyFilterGroup historyMuscleRow">
             <button class="historyFilterChip active" id="histGroup_all" onclick="setHistoryGroupFilter('all')">All</button>
             <button class="historyFilterChip" id="histGroup_chest" onclick="setHistoryGroupFilter('chest')">Chest</button>
             <button class="historyFilterChip" id="histGroup_back" onclick="setHistoryGroupFilter('back')">Back</button>
             <button class="historyFilterChip" id="histGroup_legs" onclick="setHistoryGroupFilter('legs')">Legs</button>
             <button class="historyFilterChip" id="histGroup_arms" onclick="setHistoryGroupFilter('arms')">Arms</button>
-          </div>
-          <div class="historyFilterGroup historyBottomRow">
             <button class="historyFilterChip" id="histGroup_shoulders" onclick="setHistoryGroupFilter('shoulders')">Shoulders</button>
             <button class="historyFilterChip" id="histGroup_core" onclick="setHistoryGroupFilter('core')">Core</button>
           </div>
@@ -456,20 +454,27 @@
         </div>
         <div class="chatBox" id="chatBox">
           <div class="chatMsg bot">
-            <div class="chatBubble">Hey! 💪 I'm your AI Personal Trainer. Ask me anything about workouts, diet, or fitness goals!</div>
+            <div class="chatBubble">
+              <div class="chatBubbleBody">
+                <div class="chatParagraph">Hi! I'm Shero AI.</div>
+                <div class="chatParagraph">Ask about workouts, recovery, diet, or your training balance.</div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="chatInput">
-          <input type="text" id="chatInputField" placeholder="Ask me anything... e.g. What should I eat after workout?" onkeydown="if(event.key==='Enter') sendMessage()"/>
-          <button onclick="sendMessage()">Send</button>
+        <div class="chatInputBar">
+          <div class="chatInput">
+            <input type="text" id="chatInputField" placeholder="Ask about workouts, recovery, or nutrition..." onkeydown="if(event.key==='Enter') sendMessage()"/>
+            <button onclick="sendMessage()">Send</button>
+          </div>
         </div>
         <div class="quickQuestions">
-          <p>Quick Questions:</p>
+          <p>Quick Actions</p>
           <div class="quickBtns">
-            <button onclick="askQuick('What should I eat before a workout?')">Pre-workout diet</button>
-            <button onclick="askQuick('How much protein do I need daily?')">Protein intake</button>
-            <button onclick="askQuick('How many rest days do I need per week?')">Rest days</button>
-            <button onclick="askQuick('Give me a full week workout plan for muscle gain')">Workout plan</button>
+            <button onclick="askQuick('Based on my recent workouts, what should I train today?')">Today's workout</button>
+            <button onclick="askQuick('Give me a recovery tip based on my recent training.')">Recovery tip</button>
+            <button onclick="askQuick('What should I eat after a workout for recovery and muscle gain?')">Meal help</button>
+            <button onclick="askQuick('Check my workout balance and tell me what to train next.')">What next?</button>
           </div>
         </div>
       </div>
