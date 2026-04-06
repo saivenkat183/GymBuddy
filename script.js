@@ -141,6 +141,8 @@ let currentMuscle = '', currentExercise = '', currentSets = [];
 let progressChart = null, allSessions = [];
 let myFollowCounts = { followersCount: 0, followingCount: 0 };
 let sheroFocusMuscle = '';
+let previousUnlockedBadgeIds = new Set();
+let badgeUnlockBaselineDone = false;
 
 // ─── CALENDAR STATE ───────────────────────────────────────────────────────────
 let calYear, calMonth;
@@ -286,8 +288,8 @@ function getFullBodyWeekProgress() {
     const counts = weeks[key];
     const weekValid = muscles.every(muscle => {
       const sets = counts[muscle] || 0;
-      const yellowMin = (MUSCLE_THRESHOLDS[muscle] || [5])[0];
-      return sets >= yellowMin;
+      const greenMin = (MUSCLE_THRESHOLDS[muscle] || [5, 10])[1];
+      return sets > greenMin;
     });
 
     if (weekValid) {
@@ -299,6 +301,63 @@ function getFullBodyWeekProgress() {
   });
 
   return { cur: Math.min(bestStreak, 2), max: 2 };
+}
+
+function getUnlockedBadgeIds() {
+  return new Set(BADGES.filter(b => {
+    const { cur, max } = b.progress();
+    return max > 0 && cur >= max;
+  }).map(b => b.id));
+}
+
+function showBadgeUnlockOverlay(badge) {
+  const existing = document.getElementById('badgeUnlockOverlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'badgeUnlockOverlay';
+  overlay.className = 'badgeUnlockOverlay';
+  overlay.innerHTML = `
+    <div class="badgeUnlockPanel">
+      ${makeBadgeSVG(badge, 1)}
+      <div class="badgeUnlockLabel">Badge Unlocked</div>
+      <div class="badgeUnlockName">${badge.name}</div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => {
+    overlay.classList.add('show');
+    overlay.style.visibility = 'visible';
+  });
+
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+  }, 2600);
+}
+
+function checkBadgeUnlocks() {
+  if (!badgeUnlockBaselineDone) {
+    previousUnlockedBadgeIds = getUnlockedBadgeIds();
+    badgeUnlockBaselineDone = true;
+    return;
+  }
+
+  const currentIds = getUnlockedBadgeIds();
+  const newIds = [...currentIds].filter(id => !previousUnlockedBadgeIds.has(id));
+  if (!newIds.length) {
+    previousUnlockedBadgeIds = currentIds;
+    return;
+  }
+
+  newIds.forEach((id, index) => {
+    setTimeout(() => {
+      const badge = BADGES.find(b => b.id === id);
+      if (badge) showBadgeUnlockOverlay(badge);
+    }, index * 2800);
+  });
+
+  previousUnlockedBadgeIds = currentIds;
 }
 
 function updateHeatmap() {
@@ -971,6 +1030,8 @@ async function saveWorkout() {
     });
     await res.json();
     await loadSessions();
+    checkBadgeUnlocks();
+    renderBadges();
     hideLoading();
     const newSession = allSessions[allSessions.length - 1];
     if (newSession) checkPR(newSession);
@@ -1913,7 +1974,7 @@ const BADGES = [
   { id:'streak_100',  name:'Centurion',   desc:'100 Day Streak',               shape:'hexagon', tier:'gold', icon:'👑', progress: () => ({ cur: Math.min(getBestStreak(),100), max:100 }) },
   { id:'pushup_75',   name:'Push 75',     desc:'75 Push-Ups in a set',         shape:'star',    tier:'gold', icon:'💪', progress: () => ({ cur: Math.min(getBestReps('Push-Up'),75), max:75 }) },
   { id:'pullup_20',   name:'Pull 20',     desc:'20 Pull-Ups in a set',         shape:'star',    tier:'gold', icon:'🔝', progress: () => ({ cur: Math.min(getBestReps('Pull-Up'),20), max:20 }) },
-  { id:'full_body',   name:'Full Body',   desc:'Train all 13 muscles at orange intensity for 2 consecutive weeks', shape:'star', tier:'gold', icon:'🌟',
+  { id:'full_body',   name:'Full Body',   desc:'Train all 13 muscles at green intensity for 2 consecutive weeks', shape:'star', tier:'gold', icon:'🌟',
     progress: () => getFullBodyWeekProgress()
   },
 
@@ -1996,7 +2057,7 @@ function renderBadges() {
       const pct = max > 0 ? cur / max : 0;
       const unlocked = pct >= 1;
       if (unlocked) unlockedCount++;
-      html += `<div class="badgeCard ${unlocked ? 'unlocked' : 'locked'}">
+      html += `<div class="badgeCard ${unlocked ? 'unlocked ' + b.tier : 'locked'}">
         ${makeBadgeSVG(b, pct)}
         <div class="badgeName">${b.name}</div>
         <div class="badgeDesc">${b.desc}</div>
@@ -2226,6 +2287,12 @@ if (typeof loadSessions === 'function') {
   const originalLoadSessions = loadSessions;
   loadSessions = async function(...args) {
     const result = await originalLoadSessions.apply(this, args);
+    if (!badgeUnlockBaselineDone) {
+      previousUnlockedBadgeIds = getUnlockedBadgeIds();
+      badgeUnlockBaselineDone = true;
+    } else {
+      checkBadgeUnlocks();
+    }
     renderShero();
     return result;
   };

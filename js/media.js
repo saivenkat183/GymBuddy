@@ -202,6 +202,11 @@ function getTimeAgo(date) {
   return Math.floor(diff / 86400) + 'd ago';
 }
 
+function formatMonthName(monthIndex) {
+  return ['January','February','March','April','May','June','July','August','September','October','November','December'][monthIndex] || '';
+}
+
+
 function renderGallery() {
   const grid = byId('galleryGrid');
   if (!grid) return;
@@ -210,6 +215,7 @@ function renderGallery() {
     grid.innerHTML = '<div class="emptyState">No gallery images yet. Add the first one.</div>';
     return;
   }
+
   grid.innerHTML = items.map(item => {
     const canDelete = item.username === currentUser;
     return `
