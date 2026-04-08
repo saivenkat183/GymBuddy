@@ -340,6 +340,46 @@
           </div>
         </div>
         <div id="prByMuscle"></div>
+              <script>
+              function renderPRByMuscleWithElite() {
+                const el = document.getElementById('prByMuscle');
+                if (!window.allSessions || !allSessions.length) {
+                  el.innerHTML = '<div class="emptyState">No workouts logged yet. Start lifting to see your PRs! 💪</div>';
+                  return;
+                }
+                const muscleMap = {};
+                allSessions.forEach(s => {
+                  if (!muscleMap[s.muscle]) muscleMap[s.muscle] = {};
+                  s.sets.forEach(set => {
+                    const w = parseFloat(set.weight || 0);
+                    const r = parseInt(set.reps || 0);
+                    const est1rm = window.calc1RM(w, r);
+                    if (!muscleMap[s.muscle][s.exercise] || est1rm > muscleMap[s.muscle][s.exercise].est1rm) {
+                      muscleMap[s.muscle][s.exercise] = { weight: w, reps: r, est1rm, date: s.date };
+                    }
+                  });
+                });
+                el.innerHTML = Object.keys(muscleMap).map(muscle => `
+                  <div class="prMuscleSection">
+                    <div class="prMuscleHeader">${muscle}</div>
+                    ${Object.keys(muscleMap[muscle]).map(ex => {
+                      const pr = muscleMap[muscle][ex];
+                      const date = new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                      const elite = window.ELITE_1RM[ex];
+                      const pct = elite ? Math.round((pr.est1rm / elite) * 100) : null;
+                      return `<div class="prCard"><div class="prExName">${ex}</div><div class="prRight"><div class="prWeightBig">${pr.weight}<span>lbs</span></div><div class="prRepsDate">${pr.reps} reps · ${date}</div><div class=\"prEliteScore\">1RM: ${pr.est1rm}${elite ? ` (${pct}% of Elite)` : ''}</div></div></div>`;
+                    }).join('')}
+                  </div>`).join('');
+              }
+              // Patch the original renderPRByMuscle
+              window.renderPRByMuscle = renderPRByMuscleWithElite;
+              // Ensure it runs after DOM and data are ready
+              document.addEventListener('DOMContentLoaded', function() {
+                if (document.getElementById('prByMuscle')) {
+                  setTimeout(() => { if (window.renderPRByMuscle) window.renderPRByMuscle(); }, 100);
+                }
+              });
+              </script>
       </div>
     </div>
 
@@ -361,6 +401,57 @@
             </div>
             <div class="aboutIdentitySummary">
               <div class="aboutIdentityName" id="aboutProfileName">Your Name</div>
+                            <div class="aboutIdentityName" id="aboutProfileName">Your Name <span id="overallStrengthScore" style="font-size:1rem;color:#27ae60"></span></div>
+                      <script>
+                      // Enhance PR display with 1RM and elite percent
+                      function renderPRByMuscleWithElite() {
+                        const el = document.getElementById('prByMuscle');
+                        if (!window.allSessions || !allSessions.length) { el.innerHTML = '<div class="emptyState">No workouts logged yet. Start lifting to see your PRs! 💪</div>'; return; }
+                        const muscleMap = {};
+                        allSessions.forEach(s => {
+                          if (!muscleMap[s.muscle]) muscleMap[s.muscle] = {};
+                          s.sets.forEach(set => {
+                            const w = parseFloat(set.weight || 0);
+                            const r = parseInt(set.reps || 0);
+                            const est1rm = window.calc1RM(w, r);
+                            if (!muscleMap[s.muscle][s.exercise] || est1rm > muscleMap[s.muscle][s.exercise].est1rm) {
+                              muscleMap[s.muscle][s.exercise] = { weight: w, reps: r, est1rm, date: s.date };
+                            }
+                          });
+                        });
+                        el.innerHTML = Object.keys(muscleMap).map(muscle => `
+                          <div class="prMuscleSection">
+                            <div class="prMuscleHeader">${muscle}</div>
+                            ${Object.keys(muscleMap[muscle]).map(ex => {
+                              const pr = muscleMap[muscle][ex];
+                              const date = new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                              const elite = window.ELITE_1RM[ex];
+                              const pct = elite ? Math.round((pr.est1rm / elite) * 100) : null;
+                              return `<div class="prCard"><div class="prExName">${ex}</div><div class="prRight"><div class="prWeightBig">${pr.weight}<span>lbs</span></div><div class="prRepsDate">${pr.reps} reps · ${date}</div>${elite ? `<div class=\"prEliteScore\">1RM: ${pr.est1rm} (${pct}% of Elite)</div>` : ''}</div></div>`;
+                            }).join('')}
+                          </div>`).join('');
+                      }
+                      // Patch the original renderPRByMuscle
+                      window.renderPRByMuscle = renderPRByMuscleWithElite;
+                      // Update overall strength score in profile
+                      function updateOverallStrengthScoreDisplay() {
+                        const el = document.getElementById('overallStrengthScore');
+                        if (el && window.getOverallStrengthScore) {
+                          const score = window.getOverallStrengthScore();
+                          el.textContent = score ? `· Strength Score: ${score}% of Elite` : '';
+                        }
+                      }
+                      // Call after profile render
+                      document.addEventListener('DOMContentLoaded', updateOverallStrengthScoreDisplay);
+                      // If profile is re-rendered by app, patch renderAboutHeader
+                      if (window.renderAboutHeader) {
+                        const origRenderAboutHeader = window.renderAboutHeader;
+                        window.renderAboutHeader = function(...args) {
+                          origRenderAboutHeader.apply(this, args);
+                          updateOverallStrengthScoreDisplay();
+                        };
+                      }
+                      </script>
               <div class="aboutIdentitySplitRow">
                 <div class="aboutIdentitySplit" id="aboutProfileSplit">Add your workout split</div>
                 <button class="splitQuickEditBtn" id="aboutSplitQuickEditBtn" type="button" onclick="toggleWorkoutSplitEditor()" aria-label="Edit workout split" title="Edit workout split">✏️</button>

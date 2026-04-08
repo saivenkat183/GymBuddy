@@ -136,6 +136,140 @@ const EXERCISE_PROFILES = {
 const MUSCLE_COLORS = ['#2a2a2a','#1a5c2a','#27ae60','#2ecc71'];
 
 let currentUser = null, isRegister = false, token = null;
+
+// ─── ELITE STANDARDS ─────────────────────────────────────────────────────────
+const ELITE_1RM = {
+  'Bench Press': 315,
+  'Incline Bench Press': 275,
+  'Flat Dumbbell Press': 120,
+  'Incline Dumbbell Press': 110,
+  'Decline Bench Press': 315,
+  'Cable Fly': 90,
+  'Dumbbell Fly': 70,
+  'Push-Up': 75, // reps
+  'Chest Dip': 135,
+  'Overhead Press': 205,
+  'Lateral Raise': 50,
+  'Front Raise': 50,
+  'Arnold Press': 90,
+  'Upright Row': 185,
+  'Cable Lateral Raise': 60,
+  'Barbell Curl': 135,
+  'EZ Curl': 125,
+  'Dumbbell Curl': 70,
+  'Hammer Curl': 70,
+  'Preacher Curl': 110,
+  'Cable Curl': 90,
+  'Bayesian Curl': 70,
+  'Concentration Curl': 60,
+  'Chin-Up': 100,
+  'Tricep Pushdown': 120,
+  'Skull Crusher': 135,
+  'Close-Grip Bench': 275,
+  'Overhead Tricep Extension': 110,
+  'Dips': 135,
+  'Diamond Push-Up': 60, // reps
+  'Kickback': 60,
+  'Crunch': 100, // reps
+  'Plank': 5, // min
+  'Leg Raise': 30, // reps
+  'Cable Crunch': 120,
+  'Russian Twist': 60, // reps
+  'Hanging Knee Raise': 30, // reps
+  'Ab Rollout': 30, // reps
+  'Wrist Curl': 100,
+  'Reverse Wrist Curl': 80,
+  "Farmer's Walk": 120,
+  'Dead Hang': 2, // min
+  'Reverse Curl': 110,
+  'Pull-Up': 100,
+  'Lat Pulldown': 250,
+  'Seated Row': 250,
+  'Dumbbell Row': 150,
+  'Barbell Row': 275,
+  'T-Bar Row': 275,
+  'Straight-Arm Pulldown': 120,
+  'Face Pull': 100,
+  'Shrug': 405,
+  'Barbell Shrug': 405,
+  'Dumbbell Shrug': 150,
+  'Rack Pull': 495,
+  'Deadlift': 495,
+  'Romanian Deadlift': 405,
+  'Hyperextension': 135,
+  'Good Morning': 225,
+  'Cable Pull-Through': 120,
+  'Squat': 405,
+  'Leg Press': 900,
+  'Leg Extension': 300,
+  'Lunges': 135,
+  'Hack Squat': 315,
+  'Bulgarian Split Squat': 100,
+  'Leg Curl': 200,
+  'Lying Leg Curl': 180,
+  'Nordic Curl': 15, // reps
+  'Stiff-Leg Deadlift': 405,
+  'Glute-Ham Raise': 20, // reps
+  'Hip Thrust': 405,
+  'Glute Bridge': 315,
+  'Cable Kickback': 90,
+  'Sumo Squat': 405,
+  'Step-Up': 100,
+  'Donkey Kick': 60,
+  'Calf Raise': 405,
+  'Seated Calf Raise': 225,
+  'Leg Press Calf Raise': 600,
+  'Jump Rope': 5, // min
+  'Donkey Calf Raise': 315
+};
+
+// ─── 1RM CALCULATION ─────────────────────────────────────────────────────────
+function calc1RM(weight, reps) {
+  if (!weight || !reps) return 0;
+  return Math.round(weight * (1 + reps / 30)); // Epley formula
+}
+
+function getBest1RM(exercise) {
+  let best = 0;
+  if (!Array.isArray(allSessions)) return 0;
+  allSessions.filter(s => s.exercise === exercise).forEach(s => {
+    (s.sets || []).forEach(set => {
+      const w = parseFloat(set.weight || 0);
+      const r = parseInt(set.reps || 0);
+      const est = calc1RM(w, r);
+      if (est > best) best = est;
+    });
+  });
+  return best;
+}
+
+function getOverallStrengthScore() {
+  // Average percent of elite for all exercises with elite standards and user data
+  let totalPct = 0, count = 0;
+  Object.keys(ELITE_1RM).forEach(ex => {
+    const elite = ELITE_1RM[ex];
+    const user1RM = getBest1RM(ex);
+    if (elite && user1RM > 0) {
+      totalPct += Math.min(100, (user1RM / elite) * 100);
+      count++;
+    }
+  });
+  return count ? Math.round(totalPct / count) : 0;
+}
+
+function getExerciseElitePercent(exercise) {
+  const elite = ELITE_1RM[exercise];
+  if (!elite) return null;
+  const user1RM = getBest1RM(exercise);
+  return elite > 0 ? Math.round((user1RM / elite) * 100) : null;
+}
+
+// Expose globally for index.html
+window.ELITE_1RM = ELITE_1RM;
+window.calc1RM = calc1RM;
+window.getBest1RM = getBest1RM;
+window.getOverallStrengthScore = getOverallStrengthScore;
+window.getExerciseElitePercent = getExerciseElitePercent;
 let currentMuscle = '', currentExercise = '', currentSets = [];
 let progressChart = null, allSessions = [];
 let chartMetric = 'volume';
@@ -2426,15 +2560,19 @@ function renderChart() {
 // ─── PR BY MUSCLE ─────────────────────────────────────────────────────────────
 function renderPRByMuscle() {
   const el = document.getElementById('prByMuscle');
-  if (!allSessions.length) { el.innerHTML = '<div class="emptyState">No workouts logged yet. Start lifting to see your PRs! 💪</div>'; return; }
+  if (!allSessions.length) {
+    el.innerHTML = '<div class="emptyState">No workouts logged yet. Start lifting to see your PRs! 💪</div>';
+    return;
+  }
   const muscleMap = {};
   allSessions.forEach(s => {
     if (!muscleMap[s.muscle]) muscleMap[s.muscle] = {};
     s.sets.forEach(set => {
       const w = parseFloat(set.weight || 0);
       const r = parseInt(set.reps || 0);
-      if (!muscleMap[s.muscle][s.exercise] || w > muscleMap[s.muscle][s.exercise].weight) {
-        muscleMap[s.muscle][s.exercise] = { weight: w, reps: r, date: s.date };
+      const est1rm = window.calc1RM ? window.calc1RM(w, r) : (w * (1 + r / 30));
+      if (!muscleMap[s.muscle][s.exercise] || est1rm > muscleMap[s.muscle][s.exercise].est1rm) {
+        muscleMap[s.muscle][s.exercise] = { weight: w, reps: r, est1rm, date: s.date };
       }
     });
   });
@@ -2444,7 +2582,9 @@ function renderPRByMuscle() {
       ${Object.keys(muscleMap[muscle]).map(ex => {
         const pr = muscleMap[muscle][ex];
         const date = new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        return `<div class="prCard"><div class="prExName">${ex}</div><div class="prRight"><div class="prWeightBig">${pr.weight}<span>lbs</span></div><div class="prRepsDate">${pr.reps} reps · ${date}</div></div></div>`;
+        const elite = window.ELITE_1RM ? window.ELITE_1RM[ex] : null;
+        const pct = elite ? Math.round((pr.est1rm / elite) * 100) : null;
+        return `<div class="prCard"><div class="prExName">${ex}</div><div class="prRight"><div class="prWeightBig">${pr.weight}<span>lbs</span></div><div class="prRepsDate">${pr.reps} reps · ${date}</div><div class=\"prEliteScore\">1RM: ${pr.est1rm}${elite ? ` (${pct}% of Elite)` : ''}</div></div></div>`;
       }).join('')}
     </div>`).join('');
 }
@@ -2774,7 +2914,14 @@ function renderAboutHeader(data = {}) {
   const nameEl = document.getElementById('aboutProfileName');
   const splitEl = document.getElementById('aboutProfileSplit');
   const splitBtn = document.getElementById('aboutSplitQuickEditBtn');
-  if (nameEl) nameEl.textContent = data.name || currentUser || 'Your Name';
+  // Fix: update only the text node, preserve the strength score span
+  if (nameEl) {
+    // Find the span for the strength score if present
+    let scoreSpan = nameEl.querySelector('#overallStrengthScore');
+    nameEl.innerHTML = '';
+    nameEl.append(document.createTextNode(data.name || currentUser || 'Your Name'));
+    if (scoreSpan) nameEl.appendChild(scoreSpan);
+  }
   if (splitEl) {
     if (data.trainingDays && data.workoutSplit) splitEl.textContent = `${data.trainingDays} days · ${data.workoutSplit}`;
     else if (data.trainingDays) splitEl.textContent = `${data.trainingDays} day plan not set yet`;
