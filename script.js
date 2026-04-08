@@ -4,13 +4,13 @@ const API = 'https://gymbuddy-backend-wsn1.onrender.com/api';
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const EXERCISES = {
   Chest:['Bench Press','Incline Bench Press','Flat Dumbbell Press','Incline Dumbbell Press','Decline Bench Press','Cable Fly','Dumbbell Fly','Push-Up','Chest Dip'],
-  Shoulders:['Overhead Press','Lateral Raise','Front Raise','Arnold Press','Face Pull','Upright Row','Cable Lateral Raise'],
+  Shoulders:['Overhead Press','Lateral Raise','Front Raise','Arnold Press','Upright Row','Cable Lateral Raise'],
   Biceps:['Barbell Curl','EZ Curl','Dumbbell Curl','Hammer Curl','Preacher Curl','Cable Curl','Bayesian Curl','Concentration Curl','Chin-Up'],
   Triceps:['Tricep Pushdown','Skull Crusher','Close-Grip Bench','Overhead Tricep Extension','Dips','Diamond Push-Up','Kickback'],
   Abs:['Crunch','Plank','Leg Raise','Cable Crunch','Russian Twist','Hanging Knee Raise','Ab Rollout'],
   Forearms:['Wrist Curl','Reverse Wrist Curl','Hammer Curl','Farmer\'s Walk','Dead Hang','Reverse Curl'],
-  Lats:['Pull-Up','Lat Pulldown','Seated Row','Dumbbell Row','Barbell Row','T-Bar Row','Straight-Arm Pulldown'],
-  Traps:['Shrug','Barbell Shrug','Dumbbell Shrug','Face Pull','Rack Pull','Upright Row'],
+  Lats:['Pull-Up','Lat Pulldown','Seated Row','Dumbbell Row','Barbell Row','T-Bar Row','Straight-Arm Pulldown','Face Pull'],
+  Traps:['Shrug','Barbell Shrug','Dumbbell Shrug','Rack Pull','Upright Row'],
   'Lower Back':['Deadlift','Romanian Deadlift','Hyperextension','Good Morning','Cable Pull-Through'],
   Quadriceps:['Squat','Leg Press','Leg Extension','Lunges','Hack Squat','Bulgarian Split Squat'],
   Hamstrings:['Romanian Deadlift','Leg Curl','Lying Leg Curl','Nordic Curl','Stiff-Leg Deadlift','Glute-Ham Raise','Good Morning'],
@@ -35,7 +35,6 @@ const EXERCISE_PROFILES = {
     'Lateral Raise': { role: 'isolation', focus: 'side-delts' },
     'Front Raise': { role: 'isolation', focus: 'front-delts' },
     'Arnold Press': { role: 'compound', focus: 'front-side-delts' },
-    'Face Pull': { role: 'stretch', focus: 'rear-delts' },
     'Upright Row': { role: 'compound', focus: 'upper-delts' },
     'Cable Lateral Raise': { role: 'stretch', focus: 'side-delts' }
   },
@@ -83,13 +82,13 @@ const EXERCISE_PROFILES = {
     'Dumbbell Row': { role: 'compound', focus: 'mid-lats' },
     'Barbell Row': { role: 'compound', focus: 'mid-back' },
     'T-Bar Row': { role: 'compound', focus: 'lower-lats' },
-    'Straight-Arm Pulldown': { role: 'stretch', focus: 'lower-lats' }
+    'Straight-Arm Pulldown': { role: 'stretch', focus: 'lower-lats' },
+    'Face Pull': { role: 'stretch', focus: 'rear-delts' }
   },
   Traps: {
     'Shrug': { role: 'isolation', focus: 'upper-traps' },
     'Barbell Shrug': { role: 'compound', focus: 'upper-traps' },
     'Dumbbell Shrug': { role: 'isolation', focus: 'upper-traps' },
-    'Face Pull': { role: 'stretch', focus: 'mid-traps' },
     'Rack Pull': { role: 'compound', focus: 'upper-traps' },
     'Upright Row': { role: 'compound', focus: 'upper-traps' }
   },
@@ -145,6 +144,8 @@ let myFollowCounts = { followersCount: 0, followingCount: 0 };
 let sheroFocusMuscle = '';
 let previousUnlockedBadgeIds = new Set();
 let badgeUnlockBaselineDone = false;
+let workoutSplitDraft = [];
+let selectedWorkoutSplitChip = '';
 
 // ─── CALENDAR STATE ───────────────────────────────────────────────────────────
 let calYear, calMonth;
@@ -287,9 +288,28 @@ function getWeekStartDayIndex() {
   return dayMap[getWeekStartPreference()] ?? 1;
 }
 
+function toDateKey(dateValue) {
+  if (!dateValue) return '';
+  if (typeof dateValue === 'string') {
+    const trimmed = dateValue.trim();
+    const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+  const date = dateValue instanceof Date ? new Date(dateValue.getTime()) : new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeStoredDateKeys(values) {
+  return [...new Set((Array.isArray(values) ? values : []).map(toDateKey).filter(Boolean))];
+}
+
 function getDateWeekKey(date) {
   const { monday } = getCurrentWeekWindow(0, date);
-  return monday.toLocaleDateString('en-CA');
+  return toDateKey(monday);
 }
 
 function getFullBodyWeekProgress() {
@@ -409,22 +429,28 @@ function updateHeatmap() {
 
 // ─── STREAK ───────────────────────────────────────────────────────────────────
 function getRestDays() {
-  return JSON.parse(localStorage.getItem('restDays_' + currentUser) || '[]');
+  const key = 'restDays_' + currentUser;
+  const raw = JSON.parse(localStorage.getItem(key) || '[]');
+  const normalized = normalizeStoredDateKeys(raw);
+  if (JSON.stringify(raw) !== JSON.stringify(normalized)) {
+    localStorage.setItem(key, JSON.stringify(normalized));
+  }
+  return normalized;
 }
 
 function logRestDay() {
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = toDateKey(new Date());
   const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayKey = yesterday.toLocaleDateString('en-CA');
+  const yesterdayKey = toDateKey(yesterday);
 
   const restDays = getRestDays();
   const freezeDays = getFreezeDays();
 
-  const todayWorkedOut = allSessions.some(s => new Date(s.date).toLocaleDateString('en-CA') === today);
+  const todayWorkedOut = allSessions.some(s => toDateKey(s.date) === today);
   const todayRest = restDays.includes(today);
   const todayFrozen = freezeDays.includes(today);
 
-  const yesterdayWorkedOut = allSessions.some(s => new Date(s.date).toLocaleDateString('en-CA') === yesterdayKey);
+  const yesterdayWorkedOut = allSessions.some(s => toDateKey(s.date) === yesterdayKey);
   const yesterdayRest = restDays.includes(yesterdayKey);
   const yesterdayFrozen = freezeDays.includes(yesterdayKey);
 
@@ -477,13 +503,13 @@ function applyRestDay(dateKey) {
     document.getElementById('restDayModal')?.remove(); return;
   }
   // Check consecutive rest days for streak break (only applies going forward from today)
-  const isToday = dateKey === new Date().toLocaleDateString('en-CA');
+  const isToday = dateKey === toDateKey(new Date());
   if (isToday) {
     let consecutiveRest = 0;
     let check = new Date(); check.setDate(check.getDate() - 1);
     for (let i = 0; i < 3; i++) {
-      const key = check.toLocaleDateString('en-CA');
-      const wasWorkout = allSessions.some(s => new Date(s.date).toLocaleDateString('en-CA') === key);
+      const key = toDateKey(check);
+      const wasWorkout = allSessions.some(s => toDateKey(s.date) === key);
       if (restDays.includes(key) && !wasWorkout) { consecutiveRest++; check.setDate(check.getDate() - 1); }
       else break;
     }
@@ -501,7 +527,7 @@ function applyRestDay(dateKey) {
   localStorage.setItem('restDays_' + currentUser, JSON.stringify(restDays));
   updateStreak(); if (calYear !== undefined) renderCalendar();
   document.getElementById('restDayModal')?.remove();
-  const label = dateKey === new Date().toLocaleDateString('en-CA') ? 'today' : 'yesterday';
+  const label = dateKey === toDateKey(new Date()) ? 'today' : 'yesterday';
   alert(`Rest day logged for ${label}! 😴 Your streak is safe!`);
 }
 
@@ -510,7 +536,7 @@ function getStreak() {
   const restDays = getRestDays();
   const freezeDays = getFreezeDays();
   const brokenDate = localStorage.getItem('streakBroken_' + currentUser);
-  const workoutDays = [...new Set(allSessions.map(s => new Date(s.date).toLocaleDateString('en-CA')))];
+  const workoutDays = [...new Set(allSessions.map(s => toDateKey(s.date)).filter(Boolean))];
   const filterFrom = brokenDate ? new Date(brokenDate + 'T12:00:00') : null;
   const validWorkouts = filterFrom ? workoutDays.filter(d => new Date(d + 'T12:00:00') > filterFrom) : workoutDays;
   const validRest = filterFrom ? restDays.filter(d => new Date(d + 'T12:00:00') > filterFrom) : restDays;
@@ -533,7 +559,7 @@ function getStreak() {
 function getBestStreak() {
   if (!allSessions.length && !getRestDays().length) return 0;
   const restDays = getRestDays();
-  const workoutDays = [...new Set(allSessions.map(s => new Date(s.date).toLocaleDateString('en-CA')))];
+  const workoutDays = [...new Set(allSessions.map(s => toDateKey(s.date)).filter(Boolean))];
   const allDays = [...new Set([...workoutDays, ...restDays])].map(d => new Date(d + 'T12:00:00')).sort((a, b) => a - b);
   if (!allDays.length) return 0;
   let best = 1, current = 1;
@@ -740,12 +766,14 @@ function getRecommendedExercisesForMuscle(muscle) {
 function renderSheroQuickPick(muscle = sheroFocusMuscle) {
   const el = document.getElementById('sheroQuickPick');
   if (!el) return;
-  if (!muscle || !EXERCISES[muscle]) {
+  const fallbackMuscle = muscle || getSheroMusclePlanner().primary?.muscle;
+  if (!fallbackMuscle || !EXERCISES[fallbackMuscle]) {
     el.innerHTML = '<strong>Shero picks</strong>Tap a muscle and Shero will surface 3 exercises to start with.';
     return;
   }
-  const picks = getRecommendedExercisesForMuscle(muscle);
-  el.innerHTML = `<strong>Shero picks for ${muscle}</strong>${picks.join(' · ')}`;
+  const picks = getRecommendedExercisesForMuscle(fallbackMuscle);
+  const isRecommended = !muscle || muscle !== sheroFocusMuscle;
+  el.innerHTML = `<strong>Shero picks for ${fallbackMuscle}${isRecommended ? ' · recommended now' : ''}</strong>${picks.join(' · ')}`;
 }
 
 function getMissedMuscleAlert() {
@@ -767,6 +795,489 @@ function getMissedMuscleAlert() {
     : `${missed.muscle} has been skipped for ${missed.days} days.`;
 }
 
+function getSheroGoalHint() {
+  if (!currentUser) return '';
+  const about = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
+  const goal = String(about.goal || '').toLowerCase();
+  if (!goal) return '';
+  if (/(strength|power|pr)/.test(goal)) return 'Goal: put your heaviest work first.';
+  if (/(fat|lean|cut|weight loss|lose)/.test(goal)) return 'Goal: keep the pace brisk and rest short.';
+  if (/(muscle|gain|bulk|size|hypertrophy)/.test(goal)) return 'Goal: use controlled reps and full range.';
+  return '';
+}
+
+function getPriorityMusclesFromData(data = {}) {
+  const raw = Array.isArray(data.priorityMuscles)
+    ? data.priorityMuscles
+    : [data.priorityMuscle1, data.priorityMuscle2];
+  return [...new Set(raw.filter(muscle => muscle && EXERCISES[muscle]))].slice(0, 2);
+}
+
+function getPriorityMuscles() {
+  if (!currentUser) return [];
+  const about = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
+  return getPriorityMusclesFromData(about);
+}
+
+function getPriorityTargetForMuscle(muscle) {
+  const baseTarget = (MUSCLE_THRESHOLDS[muscle] || [5, 10])[0];
+  return getPriorityMuscles().includes(muscle) ? baseTarget + 2 : baseTarget;
+}
+
+function getPriorityMuscleStatuses() {
+  const counts = getWeeklyMuscleSetCounts();
+  const recentCounts = getRecentMuscleSetCounts(3);
+  return getPriorityMuscles().map(muscle => {
+    const target = getPriorityTargetForMuscle(muscle);
+    const weeklySets = counts[muscle] || 0;
+    const recentSets = recentCounts[muscle] || 0;
+    const lastSession = getLastSessionForMuscle(muscle);
+    const daysSince = lastSession ? getDaysSince(lastSession.date) : 999;
+    const needsWork = weeklySets < target;
+    const needsRecovery = daysSince <= 1 || recentSets >= Math.max(4, Math.round(target * 0.6));
+    return { muscle, target, weeklySets, recentSets, daysSince, needsWork, needsRecovery };
+  });
+}
+
+function getPriorityScoreData(priorityStatuses = getPriorityMuscleStatuses(), maxPoints = 20) {
+  if (!priorityStatuses.length) {
+    return { score: 16, maxPoints, perMuscle: [] };
+  }
+
+  const pointsPerMuscle = maxPoints / priorityStatuses.length;
+  const perMuscle = priorityStatuses.map(status => {
+    const completion = status.target > 0 ? Math.min(1, status.weeklySets / status.target) : 0;
+    const points = Math.max(0, Math.min(pointsPerMuscle, Math.round(completion * pointsPerMuscle)));
+    return {
+      muscle: status.muscle,
+      completion,
+      points,
+      maxPoints: pointsPerMuscle
+    };
+  });
+
+  return {
+    score: Math.round(perMuscle.reduce((sum, item) => sum + item.points, 0)),
+    maxPoints,
+    perMuscle
+  };
+}
+
+function getSheroMusclePlanner() {
+  const counts = getWeeklyMuscleSetCounts();
+  const recentCounts = getRecentMuscleSetCounts(3);
+  const priorityMuscles = getPriorityMuscles();
+  const latest = allSessions.length
+    ? [...allSessions].sort((a, b) => new Date(b.date) - new Date(a.date))[0]
+    : null;
+  const latestMuscle = latest?.muscle || null;
+  const latestCluster = latestMuscle ? getMuscleCluster(latestMuscle) : null;
+  const latestDaysAgo = latest ? getDaysSince(latest.date) : null;
+
+  const ranked = Object.keys(EXERCISES).map(muscle => {
+    const isPriority = priorityMuscles.includes(muscle);
+    const target = getPriorityTargetForMuscle(muscle);
+    const weeklySets = counts[muscle] || 0;
+    const recentSets = recentCounts[muscle] || 0;
+    const lastSession = getLastSessionForMuscle(muscle);
+    const daysSince = lastSession ? getDaysSince(lastSession.date) : 999;
+    const cluster = getMuscleCluster(muscle);
+    const gap = Math.max(0, target - weeklySets);
+    const neverHitBoost = !lastSession ? 12 : 0;
+    const freshnessBoost = daysSince >= 6 ? 9 : daysSince >= 4 ? 7 : daysSince >= 2 ? 3 : 0;
+    const recentPenalty = recentSets >= target ? 10 : recentSets >= Math.max(4, Math.round(target * 0.7)) ? 6 : recentSets > 0 ? 2 : 0;
+    const sameMusclePenalty = latestMuscle === muscle && latestDaysAgo !== null && latestDaysAgo <= 1 ? 10 : 0;
+    const sameClusterPenalty = latestCluster && cluster === latestCluster && latestDaysAgo !== null && latestDaysAgo <= 1 ? 4 : 0;
+    const focusBoost = sheroFocusMuscle === muscle && daysSince >= 1 ? 4 : 0;
+    const priorityBoost = isPriority && gap > 0 ? 12 : 0;
+    const score = gap * 4 + neverHitBoost + freshnessBoost + focusBoost + priorityBoost - recentPenalty - sameMusclePenalty - sameClusterPenalty;
+    return { muscle, cluster, target, weeklySets, recentSets, daysSince, score, isPriority };
+  }).sort((a, b) => b.score - a.score || b.daysSince - a.daysSince || a.weeklySets - b.weeklySets);
+
+  const primary = ranked[0] || null;
+  const secondary = ranked.find(item => item.muscle !== primary?.muscle && item.cluster !== primary?.cluster) || ranked[1] || null;
+  const lagging = ranked.filter(item => item.weeklySets < item.target).slice(0, 3);
+  const focusStatus = sheroFocusMuscle ? ranked.find(item => item.muscle === sheroFocusMuscle) : null;
+
+  return { primary, secondary, lagging, focusStatus, ranked };
+}
+
+function getMissedMusclePriorities(limit = 3) {
+  const counts = getWeeklyMuscleSetCounts();
+  const recentCounts = getRecentMuscleSetCounts(4);
+  const priorityMuscles = getPriorityMuscles();
+  return Object.keys(EXERCISES)
+    .map(muscle => {
+      const isPriority = priorityMuscles.includes(muscle);
+      const target = getPriorityTargetForMuscle(muscle);
+      const weeklySets = counts[muscle] || 0;
+      const recentSets = recentCounts[muscle] || 0;
+      const lastSession = getLastSessionForMuscle(muscle);
+      const daysSince = lastSession ? getDaysSince(lastSession.date) : 999;
+      const behindBy = Math.max(0, target - weeklySets);
+      const freshnessBonus = Math.min(daysSince, 10);
+      const unseenBonus = lastSession ? 0 : 8;
+      const recentPenalty = recentSets >= Math.max(4, Math.round(target * 0.6)) ? 5 : recentSets > 0 ? 2 : 0;
+      const priorityBoost = isPriority && behindBy > 0 ? 10 : 0;
+      const score = behindBy * 5 + freshnessBonus + unseenBonus + priorityBoost - recentPenalty;
+      return { muscle, target, weeklySets, recentSets, daysSince, behindBy, score, isPriority };
+    })
+    .sort((a, b) => b.score - a.score || b.daysSince - a.daysSince || a.weeklySets - b.weeklySets)
+    .slice(0, limit);
+}
+
+function getPRCoaching(preferredMuscle) {
+  if (!allSessions.length) return null;
+
+  const sessions = preferredMuscle
+    ? allSessions.filter(session => session.muscle === preferredMuscle)
+    : allSessions;
+
+  const exerciseMap = {};
+  sessions.forEach(session => {
+    const weights = session.sets
+      .map(set => parseFloat(set.weight || 0))
+      .filter(weight => weight > 0);
+    if (!weights.length) return;
+
+    const maxWeight = Math.max(...weights);
+    const key = `${session.muscle}::${session.exercise}`;
+    if (!exerciseMap[key]) {
+      exerciseMap[key] = {
+        muscle: session.muscle,
+        exercise: session.exercise,
+        bestWeight: 0,
+        recentWeight: 0,
+        recentReps: 0,
+        lastDate: 0,
+        sessionCount: 0
+      };
+    }
+
+    const entry = exerciseMap[key];
+    entry.sessionCount += 1;
+    if (maxWeight >= entry.bestWeight) {
+      entry.bestWeight = maxWeight;
+    }
+
+    const sessionTime = new Date(session.date).getTime();
+    if (sessionTime >= entry.lastDate) {
+      entry.lastDate = sessionTime;
+      entry.recentWeight = maxWeight;
+      entry.recentReps = Math.max(
+        ...session.sets
+          .filter(set => parseFloat(set.weight || 0) === maxWeight)
+          .map(set => parseInt(set.reps || 0) || 0),
+        0
+      );
+    }
+  });
+
+  const candidates = Object.values(exerciseMap).filter(entry => entry.bestWeight > 0);
+  if (!candidates.length) return null;
+
+  const ranked = candidates
+    .map(entry => {
+      const ratio = entry.bestWeight ? entry.recentWeight / entry.bestWeight : 0;
+      const daysSince = entry.lastDate ? getDaysSince(entry.lastDate) : 999;
+      const readiness = (daysSince >= 2 ? 4 : -4) + (ratio >= 0.9 ? 5 : ratio >= 0.8 ? 2 : 0) + Math.min(entry.sessionCount, 3);
+      return { ...entry, ratio, daysSince, readiness };
+    })
+    .sort((a, b) => b.readiness - a.readiness || b.ratio - a.ratio || b.bestWeight - a.bestWeight);
+
+  const best = ranked[0];
+  if (!best) return null;
+
+  const percent = Math.round(best.ratio * 100);
+  if (best.daysSince <= 1 && percent >= 90) {
+    return {
+      suggest: `PR: ${best.exercise} was pushed recently — skip max attempts today.`,
+      feedback: `PR: ${best.exercise} is already at ${percent}% of your ${best.bestWeight} lb best.`
+    };
+  }
+
+  if (best.daysSince >= 2 && percent >= 90) {
+    return {
+      suggest: `PR: ${best.exercise} is close to your ${best.bestWeight} lb best — good day to push.`,
+      feedback: `PR: ${best.exercise} is sitting at ${percent}% of your best.`
+    };
+  }
+
+  if (best.daysSince >= 4 && percent < 90) {
+    return {
+      suggest: `PR: ${best.exercise} is ready for a clean check-in set.`,
+      feedback: `PR: ${best.exercise} best is ${best.bestWeight} lbs.`
+    };
+  }
+
+  return {
+    suggest: `PR: build back toward your ${best.bestWeight} lb ${best.exercise} best.`,
+    feedback: `PR: ${best.exercise} best is ${best.bestWeight} lbs.`
+  };
+}
+
+function getDailyTrainingSetMap(daysBack = 21) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+  start.setDate(start.getDate() - (daysBack - 1));
+
+  const setMap = {};
+  allSessions.forEach(session => {
+    const key = toDateKey(session.date);
+    if (!key) return;
+    const date = new Date(key + 'T12:00:00');
+    if (date < start || date > today) return;
+    setMap[key] = (setMap[key] || 0) + (session.sets?.length || 0);
+  });
+
+  return setMap;
+}
+
+function getTrainingPatternInsights() {
+  if (!allSessions.length) return [];
+
+  const insights = [];
+  const weeklyCounts = getWeeklyMuscleSetCounts();
+  const clusterTotals = {
+    push: getClusterSetTotal(weeklyCounts, 'push'),
+    pull: getClusterSetTotal(weeklyCounts, 'pull'),
+    lower: getClusterSetTotal(weeklyCounts, 'lower'),
+    core: getClusterSetTotal(weeklyCounts, 'core')
+  };
+
+  if ((clusterTotals.push + clusterTotals.pull) >= 12 && clusterTotals.lower <= 4) {
+    insights.push('You keep skipping legs lately.');
+  }
+
+  const allTimeMuscleSets = allSessions.reduce((acc, session) => {
+    acc[session.muscle] = (acc[session.muscle] || 0) + (session.sets?.length || 0);
+    return acc;
+  }, {});
+  const chestSets = allTimeMuscleSets.Chest || 0;
+  const backSets = (allTimeMuscleSets.Lats || 0) + (allTimeMuscleSets.Traps || 0) + (allTimeMuscleSets['Lower Back'] || 0);
+  if (chestSets >= 12 && chestSets > Math.max(6, backSets * 1.25)) {
+    insights.push('You train chest often, but back is lagging.');
+  }
+
+  const setMap = getDailyTrainingSetMap(21);
+  const activeDays = Object.keys(setMap)
+    .filter(key => setMap[key] > 0)
+    .sort((a, b) => new Date(a) - new Date(b));
+
+  for (let i = 0; i <= activeDays.length - 4; i++) {
+    const a = new Date(activeDays[i] + 'T12:00:00');
+    const b = new Date(activeDays[i + 1] + 'T12:00:00');
+    const c = new Date(activeDays[i + 2] + 'T12:00:00');
+    const d = new Date(activeDays[i + 3] + 'T12:00:00');
+    const ab = (b - a) / 86400000;
+    const bc = (c - b) / 86400000;
+    const cd = (d - c) / 86400000;
+    if (ab === 1 && bc === 1 && cd <= 2) {
+      const avgFirstThree = (setMap[activeDays[i]] + setMap[activeDays[i + 1]] + setMap[activeDays[i + 2]]) / 3;
+      if (setMap[activeDays[i + 3]] <= avgFirstThree * 0.6) {
+        insights.push('Your volume drops after 3 straight training days.');
+        break;
+      }
+    }
+  }
+
+  if (!insights.length) insights.push('Your recent training pattern looks steady.');
+  return insights.slice(0, 3);
+}
+
+function getDailyTargetForMuscle(muscle) {
+  const [yellowMin = 5] = MUSCLE_THRESHOLDS[muscle] || [5, 10];
+  return Math.max(4, Math.min(6, Math.ceil(yellowMin * 0.6)));
+}
+
+function hasAllMusclesGreen(counts = getWeeklyMuscleSetCounts()) {
+  return Object.keys(EXERCISES).every(muscle => {
+    const greenMin = (MUSCLE_THRESHOLDS[muscle] || [5, 10])[1];
+    return (counts[muscle] || 0) > greenMin;
+  });
+}
+
+function getTodaySessionSummary() {
+  const todayKey = toDateKey(new Date());
+  const todaySessions = allSessions
+    .filter(session => toDateKey(session.date) === todayKey)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const muscleMap = {};
+  todaySessions.forEach(session => {
+    const muscle = session.muscle;
+    if (!muscleMap[muscle]) {
+      muscleMap[muscle] = {
+        muscle,
+        cluster: getMuscleCluster(muscle),
+        sets: 0,
+        exercises: new Set(),
+        focuses: new Set(),
+        roles: new Set(),
+        lastTime: 0
+      };
+    }
+
+    const entry = muscleMap[muscle];
+    entry.sets += session.sets?.length || 0;
+    entry.exercises.add(session.exercise);
+    const profile = getExerciseProfile(muscle, session.exercise);
+    if (profile?.focus) entry.focuses.add(profile.focus);
+    if (profile?.role) entry.roles.add(profile.role);
+    entry.lastTime = Math.max(entry.lastTime, new Date(session.date).getTime());
+  });
+
+  const muscles = Object.values(muscleMap)
+    .map(entry => {
+      const dailyTarget = getDailyTargetForMuscle(entry.muscle);
+      const enoughCoverage = entry.sets >= 4 && (entry.exercises.size >= 2 || entry.focuses.size >= 2 || entry.roles.size >= 2);
+      return {
+        muscle: entry.muscle,
+        cluster: entry.cluster,
+        sets: entry.sets,
+        dailyTarget,
+        exerciseCount: entry.exercises.size,
+        focusCount: entry.focuses.size,
+        roleCount: entry.roles.size,
+        enoughForToday: entry.sets >= dailyTarget || enoughCoverage,
+        lastTime: entry.lastTime
+      };
+    })
+    .sort((a, b) => b.lastTime - a.lastTime);
+
+  const latest = muscles[0] || null;
+  const clusterMuscles = latest ? muscles.filter(item => item.cluster === latest.cluster) : [];
+  const sameClusterCoveredCount = clusterMuscles.filter(item => item.enoughForToday).length;
+  const coveredMusclesCount = muscles.filter(item => item.enoughForToday).length;
+  const totalSets = todaySessions.reduce((sum, session) => sum + (session.sets?.length || 0), 0);
+
+  return {
+    sessions: todaySessions,
+    muscles,
+    latest,
+    clusterMuscles,
+    totalSets,
+    sameClusterCoveredCount,
+    coveredMusclesCount
+  };
+}
+
+function getSheroSessionPartner(baseMuscle, planner, todaySummary, priorityStatuses) {
+  if (!baseMuscle) return null;
+
+  const partnerOrder = {
+    Chest: ['Triceps', 'Shoulders'],
+    Shoulders: ['Chest', 'Triceps'],
+    Triceps: ['Chest', 'Shoulders'],
+    Lats: ['Biceps', 'Traps', 'Forearms'],
+    Biceps: ['Lats', 'Forearms', 'Traps'],
+    Traps: ['Lats', 'Biceps', 'Forearms'],
+    'Lower Back': ['Hamstrings', 'Glutes'],
+    Quadriceps: ['Hamstrings', 'Glutes', 'Calves'],
+    Hamstrings: ['Quadriceps', 'Glutes', 'Calves'],
+    Glutes: ['Hamstrings', 'Quadriceps', 'Calves'],
+    Calves: ['Quadriceps', 'Hamstrings', 'Glutes'],
+    Abs: []
+  };
+
+  const todayMap = new Map(todaySummary.muscles.map(item => [item.muscle, item]));
+  const recovering = new Set(priorityStatuses.filter(status => status.needsRecovery).map(status => status.muscle));
+  const rankedPartners = partnerOrder[baseMuscle] || [];
+
+  const exactMatch = rankedPartners.find(muscle => {
+    if (!EXERCISES[muscle] || recovering.has(muscle)) return false;
+    const todayState = todayMap.get(muscle);
+    return !todayState || !todayState.enoughForToday;
+  });
+  if (exactMatch) return exactMatch;
+
+  return planner.ranked.find(item =>
+    item.muscle !== baseMuscle &&
+    item.cluster === getMuscleCluster(baseMuscle) &&
+    !recovering.has(item.muscle) &&
+    !(todayMap.get(item.muscle)?.enoughForToday)
+  )?.muscle || null;
+}
+
+function getWorkoutSplitFocus(splitLabel = '') {
+  const normalized = String(splitLabel || '').trim().toLowerCase();
+  if (!normalized) return null;
+
+  const definitions = {
+    push: { label: 'PUSH', muscles: ['Chest', 'Shoulders', 'Triceps'], cluster: 'push' },
+    pull: { label: 'PULL', muscles: ['Lats', 'Traps', 'Biceps', 'Forearms', 'Lower Back'], cluster: 'pull' },
+    legs: { label: 'LEGS', muscles: ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves'], cluster: 'lower' },
+    upper: { label: 'UPPER', muscles: ['Chest', 'Shoulders', 'Triceps', 'Lats', 'Traps', 'Biceps'], cluster: 'upper' },
+    lower: { label: 'LOWER', muscles: ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves'], cluster: 'lower' },
+    chest: { label: 'CHEST', muscles: ['Chest', 'Shoulders', 'Triceps'], cluster: 'push' },
+    back: { label: 'BACK', muscles: ['Lats', 'Traps', 'Lower Back', 'Biceps'], cluster: 'pull' },
+    shoulders: { label: 'SHOULDERS', muscles: ['Shoulders', 'Triceps', 'Traps'], cluster: 'push' },
+    arms: { label: 'ARMS', muscles: ['Biceps', 'Triceps', 'Forearms'], cluster: 'arms' },
+    core: { label: 'CORE', muscles: ['Abs'], cluster: 'core' },
+    'full body': { label: 'FULL BODY', muscles: ['Chest', 'Lats', 'Shoulders', 'Quadriceps', 'Hamstrings', 'Glutes', 'Biceps', 'Triceps'], cluster: 'full' },
+    rest: { label: 'REST', muscles: [], cluster: 'rest' }
+  };
+
+  return definitions[normalized] || { label: splitLabel.toUpperCase(), muscles: [], cluster: 'custom' };
+}
+
+function getCurrentWorkoutSplitInfo(counts = getWeeklyMuscleSetCounts(), todaySummary = getTodaySessionSummary()) {
+  if (!currentUser) return null;
+
+  const about = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
+  const plan = normalizeWorkoutSplitPlan(about);
+  if (!plan.length) return null;
+
+  const todayKey = toDateKey(new Date());
+  const trainingDayKeys = [...new Set(getCurrentWeekSessions().map(session => toDateKey(session.date)).filter(Boolean))].sort();
+  const todayIndex = trainingDayKeys.indexOf(todayKey);
+  const todayHasWorkout = todayIndex !== -1;
+  const planIndex = (todayHasWorkout ? Math.max(0, todayIndex) : trainingDayKeys.length) % plan.length;
+  const split = plan[planIndex] || plan[0];
+  const focus = getWorkoutSplitFocus(split);
+  if (!focus) return null;
+
+  const focusStates = focus.muscles.map(muscle => {
+    const todayState = todaySummary.muscles.find(item => item.muscle === muscle) || null;
+    const weeklySets = counts[muscle] || 0;
+    const dailyTarget = getDailyTargetForMuscle(muscle);
+    const lastSession = getLastSessionForMuscle(muscle);
+    const daysSince = lastSession ? getDaysSince(lastSession.date) : 999;
+    const enoughForToday = Boolean(todayState?.enoughForToday);
+    const score = (enoughForToday ? -20 : 0) + Math.max(0, dailyTarget - (todayState?.sets || 0)) * 4 + (daysSince >= 2 ? 3 : 0) + (weeklySets < ((MUSCLE_THRESHOLDS[muscle] || [5, 10])[0]) ? 2 : 0);
+    return {
+      muscle,
+      todaySets: todayState?.sets || 0,
+      weeklySets,
+      dailyTarget,
+      enoughForToday,
+      daysSince,
+      score
+    };
+  }).sort((a, b) => b.score - a.score || b.daysSince - a.daysSince || a.todaySets - b.todaySets);
+
+  const nextMuscle = focusStates.find(item => !item.enoughForToday)?.muscle || focusStates[0]?.muscle || null;
+  const coveredCount = focusStates.filter(item => item.enoughForToday).length;
+  const workedToday = focusStates.filter(item => item.todaySets > 0).map(item => item.muscle);
+  const splitCoveredForToday = focus.cluster === 'rest'
+    ? true
+    : coveredCount >= Math.min(2, focusStates.length) || (workedToday.length >= 2 && todaySummary.totalSets >= 8);
+
+  return {
+    plan,
+    planIndex,
+    split,
+    focus,
+    todayHasWorkout,
+    focusStates,
+    nextMuscle,
+    coveredCount,
+    workedToday,
+    splitCoveredForToday
+  };
+}
+
 function getSheroMessage(mode = 'suggest') {
   const counts = getWeeklyMuscleSetCounts();
   const weekSessions = getCurrentWeekSessions();
@@ -777,6 +1288,13 @@ function getSheroMessage(mode = 'suggest') {
     : null;
   const latestCluster = latest ? getMuscleCluster(latest.muscle) : null;
   const latestDaysAgo = latest ? getDaysSince(latest.date) : null;
+  const { monday } = getCurrentWeekWindow();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const cycleDay = Math.floor((today - monday) / 86400000) + 1;
+  const todayKey = toDateKey(today);
+  const todayHasWorkout = allSessions.some(session => toDateKey(session.date) === todayKey);
+  const todayIsRestDay = getRestDays().includes(todayKey);
   const clusterTotals = {
     push: getClusterSetTotal(counts, 'push'),
     pull: getClusterSetTotal(counts, 'pull'),
@@ -784,108 +1302,139 @@ function getSheroMessage(mode = 'suggest') {
     core: getClusterSetTotal(counts, 'core')
   };
   const allClusters = ['push', 'pull', 'lower', 'core'];
-  const cycleClusterTotals = { push: 0, pull: 0, lower: 0, core: 0 };
-  weekSessions.forEach(session => {
-    const cluster = getMuscleCluster(session.muscle);
-    if (cycleClusterTotals[cluster] !== undefined) {
-      cycleClusterTotals[cluster] += session.sets.length;
-    }
-  });
-  const cycleTrainingDays = [...new Set(weekSessions.map(session => new Date(session.date).toLocaleDateString('en-CA')))].length;
+  const cycleTrainingDays = [...new Set(weekSessions.map(session => toDateKey(session.date)).filter(Boolean))].length;
   const cycleTrainingLoad = weekSessions.reduce((sum, session) => sum + session.sets.length, 0);
   const clusterTargets = { push: 12, pull: 12, lower: 10, core: 8 };
-  const undertrainedClusters = allClusters
-    .filter(cluster => clusterTotals[cluster] < clusterTargets[cluster]);
+  const undertrainedClusters = allClusters.filter(cluster => clusterTotals[cluster] < clusterTargets[cluster]);
   const weeklyCoverageSolid = undertrainedClusters.length === 0;
   const missedMuscleAlert = getMissedMuscleAlert();
+  const goalHint = getSheroGoalHint();
+  const planner = getSheroMusclePlanner();
+  const { primary, secondary, lagging, focusStatus, ranked } = planner;
+  const priorityStatuses = getPriorityMuscleStatuses();
+  const priorityBehind = priorityStatuses.filter(status => status.needsWork);
+  const readyPriority = priorityBehind.find(status => !status.needsRecovery) || null;
+  const recoveringPriority = priorityBehind.find(status => status.needsRecovery) || null;
+  const prioritiesOnTrack = priorityStatuses.length > 0 && priorityStatuses.every(status => !status.needsWork);
+  const priorityStatusPoint = priorityStatuses.length
+    ? priorityBehind.length
+      ? `Priority: ${priorityStatuses.map(status => `${status.muscle} ${status.weeklySets}/${status.target}`).join(' · ')} — behind.`
+      : `Priority: ${priorityStatuses.map(status => `${status.muscle} ${status.weeklySets}/${status.target}`).join(' · ')} — on track.`
+    : '';
+  const prCoach = getPRCoaching((readyPriority || primary)?.muscle || sheroFocusMuscle || null);
+  const todaySummary = getTodaySessionSummary();
+  const todayLatest = todaySummary.latest;
+  const allMusclesGreen = hasAllMusclesGreen(counts);
+  const splitInfo = getCurrentWorkoutSplitInfo(counts, todaySummary);
+  const splitFocus = splitInfo?.focus || null;
+  // Enhanced: filter out muscles already worked today for split suggestion
+  let splitNextMuscle = null;
+  if (splitInfo && splitFocus && splitFocus.muscles && splitFocus.muscles.length) {
+    // Find first muscle in split not worked today
+    splitNextMuscle = splitFocus.muscles.find(muscle => !splitInfo.workedToday.includes(muscle));
+    // If all are worked, fallback to first muscle (old behavior)
+    if (!splitNextMuscle) splitNextMuscle = splitInfo.nextMuscle;
+  }
+  const splitPoint = splitInfo
+    ? splitInfo.focus.cluster === 'rest'
+      ? `Split: ${splitInfo.focus.label} day.`
+      : splitInfo.workedToday.length
+        ? `Split: ${splitInfo.focus.label} day — ${splitInfo.workedToday.join(' + ')}.`
+        : `Split: ${splitInfo.focus.label} is up next.`
+    : '';
 
   const buildMessage = (mood, ...points) => {
     const uniquePoints = [...new Set(points.flat().filter(Boolean))];
-    return { mood, points: uniquePoints, text: uniquePoints.join(' ') };
+
+    if (mood === 'Suggestion') {
+      const workout = uniquePoints.find(point => point.startsWith('Do:'))
+        || uniquePoints.find(point => point.startsWith('Workout:'))
+        || uniquePoints[0];
+      const guidance = uniquePoints.find(point => point.startsWith('Why:'))
+        || uniquePoints.find(point => point.startsWith('PR:'))
+        || uniquePoints.find(point => point.startsWith('Focus:'))
+        || uniquePoints.find(point => point.startsWith('Missed:'));
+      const recovery = uniquePoints.find(point => point.startsWith('Recovery:'))
+        || uniquePoints.find(point => point.startsWith('Goal:'));
+      const compactPoints = [workout, guidance, recovery].filter(Boolean).slice(0, 3);
+      return { mood, points: compactPoints, text: compactPoints.join(' ') };
+    }
+
+    const summary = uniquePoints.find(point => point.startsWith('Week:'))
+      || uniquePoints.find(point => point.startsWith('Cycle day'))
+      || uniquePoints[0];
+    const insight = uniquePoints.find(point => point.startsWith('Priority:'))
+      || uniquePoints.find(point => point.startsWith('Split:'))
+      || uniquePoints.find(point => point.startsWith('PR:'))
+      || uniquePoints.find(point => point.startsWith('Strongest:'))
+      || uniquePoints.find(point => point.startsWith('Covered:'))
+      || uniquePoints[1];
+    const compactPoints = [summary, insight].filter(Boolean).slice(0, 2);
+    return { mood, points: compactPoints, text: compactPoints.join(' ') };
   };
 
   if (mode === 'feedback') {
     if (!weekSessions.length) {
       return buildMessage(
         'Feedback',
-        'No sessions logged this week yet.'
+        `Week: no sessions yet in this cycle.`,
+        splitPoint || priorityStatusPoint || (primary ? `Best opener: ${primary.muscle}.` : '')
       );
     }
 
-    const weekDays = [...new Set(weekSessions.map(session => new Date(session.date).toLocaleDateString('en-CA')))];
+    const weekDays = [...new Set(weekSessions.map(session => toDateKey(session.date)).filter(Boolean))];
     const weekSetTotal = weekSessions.reduce((sum, session) => sum + session.sets.length, 0);
-    const trainedMuscles = [...new Set(weekSessions.map(session => session.muscle))];
-    const focusClusters = ['push', 'pull', 'lower']
-      .filter(cluster => clusterTotals[cluster] > 0)
-      .map(cluster => getClusterLabel(cluster));
-
-    if (weekDays.length === 1) {
-      const firstDayMuscles = [...new Set(weekSessions
-        .filter(session => new Date(session.date).toLocaleDateString('en-CA') === weekDays[0])
-        .map(session => session.muscle))];
-      return buildMessage(
-        'Feedback',
-        `Week day 1: ${weekSetTotal} total sets on ${firstDayMuscles.join(', ')}. Strong start.`
-      );
-    }
-
-    if (weekDays.length === 2) {
-      const missingClusters = ['push', 'pull', 'lower']
-        .filter(cluster => clusterTotals[cluster] === 0)
-        .map(cluster => getClusterLabel(cluster));
-      return buildMessage(
-        'Feedback',
-        missingClusters.length
-          ? `First 2 days: ${weekSetTotal} total sets across ${trainedMuscles.length} muscles. Nice start, add ${missingClusters.join(' or ')} next.`
-          : `First 2 days: ${weekSetTotal} total sets across ${trainedMuscles.length} muscles. Good balance so far.`
-      );
-    }
-
-    if (weeklyCoverageSolid) {
-      return buildMessage(
-        'Feedback',
-        `This week: ${weekSetTotal} total sets across ${weekDays.length} days. Push, pull, and legs are all well covered.`
-      );
-    }
-
-    const lowClusters = ['push', 'pull', 'lower']
-      .filter(cluster => clusterTotals[cluster] === 0)
-      .map(cluster => getClusterLabel(cluster));
+    const coveredClusters = allClusters.filter(cluster => clusterTotals[cluster] > 0).map(cluster => getClusterLabel(cluster));
+    const strongestCluster = [...allClusters].sort((a, b) => clusterTotals[b] - clusterTotals[a])[0];
+    const laggingNames = lagging.map(item => item.muscle).slice(0, 2);
+    const overdoneToday = todaySummary.totalSets >= 16 || todaySummary.sameClusterCoveredCount >= 3;
+    const statusSummary = allMusclesGreen
+      ? 'Week: killer workout — everything is in the green.'
+      : overdoneToday
+        ? 'Week: overdone today — take rest.'
+        : todayHasWorkout && todaySummary.totalSets >= 8 && (todaySummary.sameClusterCoveredCount >= 2 || todaySummary.coveredMusclesCount >= 2)
+          ? 'Week: good enough for today.'
+          : `Week: ${weekSetTotal} sets across ${weekDays.length} day${weekDays.length !== 1 ? 's' : ''}.`;
 
     return buildMessage(
       'Feedback',
-      lowClusters.length
-        ? `This week so far: ${weekSetTotal} total sets across ${weekDays.length} days. You have covered ${focusClusters.join(', ') || 'part of the week'}; add ${lowClusters.join(' and ')} to round it out.`
-        : `This week so far: ${weekSetTotal} total sets across ${weekDays.length} days. Solid progress, keep building the week evenly.`
+      statusSummary,
+      splitPoint,
+      priorityStatusPoint,
+      prCoach?.feedback || (clusterTotals[strongestCluster] > 0 ? `Strongest: ${getClusterLabel(strongestCluster)}.` : ''),
+      coveredClusters.length ? `Covered: ${coveredClusters.join(', ')}.` : '',
+      laggingNames.length ? `Add ${laggingNames.join(' and ')} later.` : 'Balance looks solid.'
     );
   }
 
   if (!allSessions.length) {
-    return buildMessage('Suggestion', 'Start with a push session.');
+    const splitStarter = splitNextMuscle || splitInfo?.nextMuscle;
+    const firstPriority = priorityStatuses[0]?.muscle;
+    return buildMessage(
+      'Suggestion',
+      splitFocus?.cluster === 'rest'
+        ? 'Do: recover today.'
+        : `Do: start with ${splitStarter || firstPriority || 'Chest or Quadriceps'}.`,
+      splitFocus
+        ? splitFocus.cluster === 'rest'
+          ? 'Why: today is your planned rest day.'
+          : `Why: today\'s planned split is ${splitFocus.label}.`
+        : firstPriority ? `Why: ${firstPriority} is a priority muscle.` : '',
+      goalHint || 'Recovery: keep one rest day in the cycle.'
+    );
   }
 
-  const missedSuggestionPoint = missedMuscleAlert
-    ? `Missed: ${missedMuscleAlert}`
-    : '';
-
+  const missedSuggestionPoint = missedMuscleAlert ? `Missed: ${missedMuscleAlert}` : '';
   const clusterRatios = allClusters.map(cluster => ({
     cluster,
     ratio: clusterTotals[cluster] / clusterTargets[cluster]
   }));
   const sortedByRatio = [...clusterRatios].sort((a, b) => a.ratio - b.ratio);
-  const lowestCluster = sortedByRatio[0].cluster;
-  const freshCluster = allClusters
-    .filter(cluster => cluster !== latestCluster)
-    .sort((a, b) => {
-      const cycleDiff = (cycleClusterTotals[a] || 0) - (cycleClusterTotals[b] || 0);
-      if (cycleDiff !== 0) return cycleDiff;
-      return clusterRatios.find(item => item.cluster === a).ratio - clusterRatios.find(item => item.cluster === b).ratio;
-    })[0];
-  const upperBodyWorkedHard = cycleClusterTotals.push >= 8 && cycleClusterTotals.pull >= 8 && cycleClusterTotals.lower < 8;
-  const sameClusterNeedsRecovery = latestCluster && cycleClusterTotals[latestCluster] >= Math.max(8, Math.round(clusterTargets[latestCluster] * 0.6));
+  const lowestCluster = sortedByRatio[0]?.cluster || 'push';
   const overallFatigue = cycleTrainingLoad >= 18 || (streak >= 6 && cycleRestDays === 0 && cycleTrainingLoad >= 12) || cycleTrainingDays >= 6;
   const overtrained = clusterRatios.some(c => c.ratio >= 1.5) && cycleTrainingLoad >= 15;
   const latestClusterLabel = latestCluster ? getClusterLabel(latestCluster) : 'your last trained area';
+  const sameClusterNeedsRecovery = latestCluster && clusterTotals[latestCluster] >= Math.max(8, Math.round(clusterTargets[latestCluster] * 0.6));
   const recoveryPoint = overtrained
     ? 'Recovery: take a light day or full rest.'
     : sameClusterNeedsRecovery && latestDaysAgo !== null && latestDaysAgo <= 1
@@ -898,90 +1447,294 @@ function getSheroMessage(mode = 'suggest') {
             ? 'Recovery: recovery is on track.'
             : 'Recovery: keep one rest day in the cycle.';
 
-  if (sameClusterNeedsRecovery && freshCluster && latestDaysAgo !== null && latestDaysAgo <= 1) {
-    const recoveryLabel = upperBodyWorkedHard ? 'Upper body' : `${getClusterLabel(latestCluster).charAt(0).toUpperCase() + getClusterLabel(latestCluster).slice(1)}`;
-    const freshLabel = getClusterLabel(freshCluster);
-    const workoutPoint = freshLabel === 'legs'
-      ? 'Workout: heavy legs is a smart next move.'
-      : `Workout: train ${freshLabel} next.`;
-    return buildMessage('Suggestion', workoutPoint, recoveryPoint, missedSuggestionPoint);
+  if ((todayIsRestDay && !todayHasWorkout) || splitFocus?.cluster === 'rest') {
+    return buildMessage(
+      'Suggestion',
+      'Do: recover today.',
+      splitFocus?.cluster === 'rest'
+        ? 'Why: today is your planned REST day.'
+        : readyPriority
+          ? `Why: ${readyPriority.muscle} is still behind at ${readyPriority.weeklySets}/${readyPriority.target} sets.`
+          : prioritiesOnTrack
+            ? 'Why: your priority muscles are already on track this cycle.'
+            : '',
+      'Recovery: mobility, hydration, sleep.'
+    );
   }
 
   if (latest && latestDaysAgo === 0 && latest.sets.length >= 10 && overallFatigue) {
     return buildMessage(
       'Suggestion',
-      'Workout: keep today light.',
-      'Recovery: focus on sleep, hydration, and mobility.',
-      missedSuggestionPoint
+      'Do: keep today light.',
+      recoveringPriority
+        ? `Why: ${recoveringPriority.muscle} is behind, but it needs recovery first.`
+        : prCoach?.feedback || '',
+      'Recovery: sleep, hydration, mobility.'
     );
   }
+
   if (streak >= 5 && cycleRestDays === 0 && cycleTrainingLoad >= 14) {
     return buildMessage(
       'Suggestion',
-      'Workout: take a light day or full rest.',
-      'Recovery: this cycle needs a break.',
-      missedSuggestionPoint
+      'Do: take a light day or rest.',
+      recoveringPriority
+        ? `Why: ${recoveringPriority.muscle} is behind, but pushing it now would be sloppy.`
+        : prCoach?.feedback || '',
+      'Recovery: this cycle needs a break.'
     );
   }
+
   if (weeklyCoverageSolid && overallFatigue) {
     return buildMessage(
       'Suggestion',
-      'Workout: keep the next session easy or rest.',
-      recoveryPoint,
-      missedSuggestionPoint
+      'Do: keep the next session easy or rest.',
+      readyPriority
+        ? `Why: ${readyPriority.muscle} is behind, but recovery comes first.`
+        : prCoach?.feedback || '',
+      recoveryPoint
     );
   }
 
   if (overtrained) {
     return buildMessage(
       'Suggestion',
-      'Workout: go light or rest next.',
-      recoveryPoint,
-      missedSuggestionPoint
+      'Do: go light or rest next.',
+      recoveringPriority
+        ? `Why: ${recoveringPriority.muscle} is behind, but it is not ready today.`
+        : prCoach?.feedback || '',
+      recoveryPoint
     );
   }
 
-  if (clusterTotals[lowestCluster] < clusterTargets[lowestCluster]) {
+  if (todayHasWorkout && todayLatest) {
+    const overdoneToday = todaySummary.totalSets >= 16 || (todaySummary.clusterMuscles.length >= 2 && todaySummary.sameClusterCoveredCount >= 3);
+    if (overdoneToday) {
+      return buildMessage(
+        'Suggestion',
+        'Do: overdone — take rest.',
+        `Why: ${todaySummary.totalSets} sets is already enough for today.`,
+        'Recovery: stop here and recover.'
+      );
+    }
+
+    if (!todayLatest.enoughForToday) {
+      const remainingSets = Math.max(1, todayLatest.dailyTarget - todayLatest.sets);
+      return buildMessage(
+        'Suggestion',
+        `Do: stay on ${todayLatest.muscle} for ${remainingSets} more set${remainingSets !== 1 ? 's' : ''}.`,
+        splitFocus?.muscles.includes(todayLatest.muscle)
+          ? `Why: it is your ${splitFocus.label} day, and ${todayLatest.sets}/${todayLatest.dailyTarget} sets is not enough for ${todayLatest.muscle}.`
+          : `Why: ${todayLatest.sets}/${todayLatest.dailyTarget} sets is not enough for ${todayLatest.muscle} today.`,
+        recoveryPoint
+      );
+    }
+
+    const splitPartner = splitFocus && splitInfo?.nextMuscle && splitInfo.nextMuscle !== todayLatest.muscle ? splitInfo.nextMuscle : null;
+    const sessionPartner = splitPartner || getSheroSessionPartner(todayLatest.muscle, { ranked }, todaySummary, priorityStatuses);
+    const workedTodayNames = todaySummary.muscles.map(item => item.muscle);
+    const dayLooksSolid = splitInfo?.splitCoveredForToday || (todaySummary.totalSets >= 8 && (todaySummary.sameClusterCoveredCount >= 2 || todaySummary.coveredMusclesCount >= 2));
+    const killerToday = allMusclesGreen || (dayLooksSolid && todaySummary.totalSets >= 12 && weeklyCoverageSolid);
+
+    if (killerToday) {
+      return buildMessage(
+        'Suggestion',
+        'Do: killer workout — you are done.',
+        allMusclesGreen
+          ? 'Why: everything is already in the green this cycle.'
+          : `Why: ${workedTodayNames.join(' and ')} are covered well today.`,
+        'Recovery: stop here and recover.'
+      );
+    }
+
+    if (sessionPartner && todaySummary.sameClusterCoveredCount < 2 && todaySummary.totalSets < 12) {
+      return buildMessage(
+        'Suggestion',
+        `Do: move to ${sessionPartner}.`,
+        splitFocus && splitFocus.muscles.includes(sessionPartner)
+          ? `Why: ${todayLatest.muscle} is covered for today, and ${sessionPartner} keeps your ${splitFocus.label} day on track.`
+          : `Why: ${todayLatest.muscle} is covered for today, and ${sessionPartner} fits the same ${getClusterLabel(todayLatest.cluster)} session.`,
+        recoveryPoint
+      );
+    }
+
+    if (dayLooksSolid || todaySummary.totalSets >= 6) {
+      return buildMessage(
+        'Suggestion',
+        'Do: good enough for today.',
+        splitFocus && splitInfo?.workedToday.length
+          ? `Why: your ${splitFocus.label} day is covered with ${splitInfo.workedToday.join(' and ')}.`
+          : `Why: ${workedTodayNames.join(' and ')} look covered for this session.`,
+        'Recovery: stop here or keep it light.'
+      );
+    }
+  }
+
+  if (splitFocus && splitFocus.cluster !== 'rest' && splitInfo?.nextMuscle) {
+    // Enhanced: use splitNextMuscle to avoid suggesting already-worked muscles
+    const nextSplitMuscle = splitNextMuscle;
+    const secondSplitMuscle = splitInfo.focusStates.find(item => item.muscle !== nextSplitMuscle && !item.enoughForToday && !splitInfo.workedToday.includes(item.muscle))?.muscle || null;
+    if (!nextSplitMuscle) {
+      // All split muscles worked today, fallback to generic message
+      return buildMessage(
+        'Suggestion',
+        `Do: good enough for today.`,
+        splitFocus && splitInfo?.workedToday.length
+          ? `Why: your ${splitFocus.label} day is covered with ${splitInfo.workedToday.join(' and ')}.`
+          : '',
+        'Recovery: stop here or keep it light.'
+      );
+    }
     return buildMessage(
       'Suggestion',
-      `Workout: train ${getClusterLabel(lowestCluster)} next.`,
-      recoveryPoint,
-      missedSuggestionPoint
+      `Do: ${splitFocus.label} day — hit ${nextSplitMuscle}${secondSplitMuscle ? `, then ${secondSplitMuscle}` : ''}.`,
+      `Why: today\'s planned split is ${splitFocus.label}, and ${nextSplitMuscle} helps cover it best right now.`,
+      recoveryPoint
     );
   }
 
-  if (latest && latestDaysAgo <= 2 && clusterTotals[latestCluster] > clusterTotals[lowestCluster] + 4) {
+  if (readyPriority) {
+    const partnerPriority = priorityBehind.find(status => status.muscle !== readyPriority.muscle && !status.needsRecovery);
     return buildMessage(
       'Suggestion',
-      `Workout: train ${getClusterLabel(lowestCluster)} next while ${getClusterLabel(latestCluster)} recovers.`,
+      `Do: hit ${readyPriority.muscle}${partnerPriority ? `, then ${partnerPriority.muscle}` : ''}.`,
+      `Why: ${readyPriority.muscle} is only at ${readyPriority.weeklySets}/${readyPriority.target} sets this cycle.`,
+      recoveryPoint
+    );
+  }
+
+  if (recoveringPriority) {
+    const fallbackMuscle = primary?.muscle && primary.muscle !== recoveringPriority.muscle ? primary.muscle : secondary?.muscle;
+    return buildMessage(
+      'Suggestion',
+      `Do: skip ${recoveringPriority.muscle} today${fallbackMuscle ? ` — train ${fallbackMuscle} instead` : ''}.`,
+      `Why: ${recoveringPriority.muscle} is a priority muscle, but it needs recovery first.`,
+      recoveryPoint
+    );
+  }
+
+  const primaryMuscle = primary?.muscle;
+  const secondaryMuscle = secondary?.muscle;
+  const focusPoint = focusStatus && sheroFocusMuscle
+    ? focusStatus.muscle === primaryMuscle
+      ? `Focus: ${sheroFocusMuscle} is a smart pick today.`
+      : focusStatus.daysSince <= 1 || focusStatus.recentSets >= Math.max(4, Math.round(focusStatus.target * 0.7))
+        ? `Focus: skip ${sheroFocusMuscle} today and let it recover.`
+        : ''
+    : '';
+
+  if (primaryMuscle) {
+    const workoutPoint = primary.cluster === 'lower'
+      ? `Do: train legs — start with ${primaryMuscle}.`
+      : `Do: train ${primaryMuscle}${secondaryMuscle ? `, then ${secondaryMuscle}` : ''}.`;
+    const whyPoint = prioritiesOnTrack
+      ? 'Why: your priority muscles are already on track, so this keeps the week balanced.'
+      : primary.daysSince >= 999
+        ? `Why: ${primaryMuscle} has not been trained yet.`
+        : primary.weeklySets < primary.target
+          ? `Why: ${primaryMuscle} is fresh and behind this cycle.`
+          : `Why: ${primaryMuscle} fits your balance best right now.`;
+
+    return buildMessage(
+      'Suggestion',
+      workoutPoint,
+      whyPoint,
+      focusPoint,
       recoveryPoint,
+      prCoach?.suggest || '',
       missedSuggestionPoint
     );
   }
 
-  const nextCluster = getSuggestedCluster(clusterTotals);
   return buildMessage(
     'Suggestion',
-    `Workout: train ${getClusterLabel(nextCluster)} next.`,
-    recoveryPoint,
-    missedSuggestionPoint
+    `Do: train ${getClusterLabel(lowestCluster)} next.`,
+    prioritiesOnTrack ? 'Why: your priority muscles are already on track this cycle.' : missedSuggestionPoint,
+    recoveryPoint
   );
 }
 
-function getSheroStateKey() {
-  return currentUser ? 'sheroCleared_' + currentUser : null;
-}
+function getWorkoutScoreData() {
+  const emptyBreakdown = {
+    consistency: { score: 0, max: 25 },
+    balance: { score: 0, max: 30 },
+    priority: { score: 0, max: 20, muscles: [] },
+    recovery: { score: 0, max: 15 },
+    workload: { score: 0, max: 10 }
+  };
 
-function isSheroCleared() {
-  const key = getSheroStateKey();
-  return key ? localStorage.getItem(key) === '1' : false;
-}
+  // Get all unique days (workout or rest) completed so far this week
+  const weekSessions = getCurrentWeekSessions();
+  const restDays = getCurrentWeekRestDays();
+  const allDays = [
+    ...new Set([
+      ...weekSessions.map(session => toDateKey(session.date)),
+      ...restDays
+    ])
+  ].filter(Boolean).sort();
+  if (!allDays.length) return { score: '—', value: 0, tone: 'mid', breakdown: emptyBreakdown };
 
-function setSheroCleared(value) {
-  const key = getSheroStateKey();
-  if (!key) return;
-  if (value) localStorage.setItem(key, '1');
-  else localStorage.removeItem(key);
+  // Only consider up to the latest completed day (workout or rest)
+  const today = toDateKey(new Date());
+  const completedDays = allDays.filter(day => day <= today);
+  // For day 1, only use day 1; for day 2, use days 1+2, etc.
+  const daysToScore = completedDays.slice(0, completedDays.length);
+  if (!daysToScore.length) return { score: '—', value: 0, tone: 'mid', breakdown: emptyBreakdown };
+
+  const completedSessions = weekSessions.filter(session => daysToScore.includes(toDateKey(session.date)));
+  const completedRestDays = restDays.filter(day => daysToScore.includes(day));
+
+  // Calculate scores based only on daysToScore
+  const counts = getWeeklyMuscleSetCounts();
+  const priorityStatuses = getPriorityMuscleStatuses();
+  const priorityScoreData = getPriorityScoreData(priorityStatuses, 20);
+  const cycleRestDays = completedRestDays.length;
+  const cycleTrainingDays = [...new Set(completedSessions.map(session => toDateKey(session.date)).filter(Boolean))].length;
+  const cycleTrainingLoad = completedSessions.reduce((sum, session) => sum + (session.sets?.length || 0), 0);
+  const latest = [...completedSessions].sort((a, b) => new Date(b.date) - new Date(a.date))[0] || null;
+
+  // Consistency: reward for each day completed so far
+  const consistencyScore = [0, 8, 14, 20, 25][Math.min(cycleTrainingDays, 4)] || 25;
+  // Balance: penalize if muscle groups are missed so far
+  const clusterTargets = { push: 12, pull: 12, lower: 10, core: 8 };
+  const balanceScore = Math.round((['push', 'pull', 'lower', 'core']
+    .map(cluster => Math.min(1, getClusterSetTotal(counts, cluster) / clusterTargets[cluster]))
+    .reduce((sum, ratio) => sum + ratio, 0) / 4) * 30);
+  // Priority: reward for hitting priority muscles so far
+  const priorityScore = priorityScoreData.score;
+
+  // Recovery: penalize if not enough rest days so far
+  let recoveryScore = 15;
+  if (cycleTrainingDays >= 6) recoveryScore -= 6;
+  else if (cycleTrainingDays >= 5 && cycleRestDays === 0) recoveryScore -= 4;
+  else if (cycleTrainingDays >= 4 && cycleRestDays === 0) recoveryScore -= 2;
+  if (getStreak() >= 7) recoveryScore -= 2;
+  if (latest && getDaysSince(latest.date) === 0 && (latest.sets?.length || 0) >= 12 && cycleRestDays === 0) recoveryScore -= 2;
+  recoveryScore = Math.max(2, recoveryScore);
+
+  // Workload: reward for good average sets per day so far
+  const avgSetsPerDay = cycleTrainingDays ? cycleTrainingLoad / cycleTrainingDays : 0;
+  const workloadScore = avgSetsPerDay >= 12 ? 10 : avgSetsPerDay >= 9 ? 8 : avgSetsPerDay >= 6 ? 6 : avgSetsPerDay >= 4 ? 4 : 2;
+
+  const value = Math.max(0, Math.min(100, Math.round(consistencyScore + balanceScore + priorityScore + recoveryScore + workloadScore)));
+  const tone = value >= 80 ? 'high' : value >= 60 ? 'mid' : 'low';
+  const breakdown = {
+    consistency: { score: consistencyScore, max: 25 },
+    balance: { score: balanceScore, max: 30 },
+    priority: {
+      score: priorityScore,
+      max: 20,
+      muscles: priorityScoreData.perMuscle.map(item => ({
+        muscle: item.muscle,
+        score: item.points,
+        max: item.maxPoints,
+        completion: Math.round(item.completion * 100)
+      }))
+    },
+    recovery: { score: recoveryScore, max: 15 },
+    workload: { score: workloadScore, max: 10 }
+  };
+
+  return { score: String(value), value, tone, breakdown };
 }
 
 function formatSheroMessageText(message) {
@@ -996,30 +1749,39 @@ function formatSheroMessageText(message) {
 function renderShero() {
   const card = document.getElementById('sheroCard');
   const iconBtn = document.getElementById('sheroIconBtn');
-  const clearBtn = document.getElementById('sheroClearBtn');
   const askAiBtn = document.getElementById('sheroAskAiBtn');
+  const scoreChip = document.getElementById('sheroScoreChip');
+  const scoreNum = document.getElementById('sheroScoreNum');
   const suggestBlock = document.getElementById('sheroSuggestMood')?.parentElement;
   const feedbackBlock = document.getElementById('sheroFeedbackMood')?.parentElement;
   const suggestMoodEl = document.getElementById('sheroSuggestMood');
   const suggestTextEl = document.getElementById('sheroSuggestText');
   const feedbackMoodEl = document.getElementById('sheroFeedbackMood');
   const feedbackTextEl = document.getElementById('sheroFeedbackText');
-  if (!card || !iconBtn || !clearBtn || !suggestBlock || !feedbackBlock || !suggestMoodEl || !suggestTextEl || !feedbackMoodEl || !feedbackTextEl) return;
+  if (!card || !iconBtn || !suggestBlock || !feedbackBlock || !suggestMoodEl || !suggestTextEl || !feedbackMoodEl || !feedbackTextEl) return;
 
-  if (isSheroCleared()) {
-    iconBtn.classList.add('off');
-    if (askAiBtn) askAiBtn.textContent = 'Ask AI instead';
-    suggestBlock.classList.remove('hidden');
-    feedbackBlock.classList.add('hidden');
-    suggestMoodEl.textContent = 'Suggestion';
-    suggestTextEl.textContent = 'No active Shero messages. Tap the bulb again whenever you want new tips.';
-    renderSheroQuickPick();
-    return;
+  const scoreData = getWorkoutScoreData();
+  if (scoreChip && scoreNum) {
+    scoreChip.classList.remove('low', 'mid', 'high');
+    scoreChip.classList.add(scoreData.tone);
+    scoreNum.textContent = scoreData.score;
+
+    const breakdown = scoreData.breakdown;
+    if (breakdown) {
+      const priorityMuscleText = breakdown.priority?.muscles?.length
+        ? `\nPriority details: ${breakdown.priority.muscles.map(item => `${item.muscle} ${item.score}/${item.max} (${item.completion}%)`).join(' · ')}`
+        : '';
+      scoreChip.title = `Consistency ${breakdown.consistency.score}/${breakdown.consistency.max} · Balance ${breakdown.balance.score}/${breakdown.balance.max} · Priority ${breakdown.priority.score}/${breakdown.priority.max} · Recovery ${breakdown.recovery.score}/${breakdown.recovery.max} · Workload ${breakdown.workload.score}/${breakdown.workload.max}${priorityMuscleText}`;
+    } else {
+      scoreChip.title = '';
+    }
   }
+  iconBtn.classList.remove('score-low', 'score-mid', 'score-high');
+  iconBtn.classList.add(`score-${scoreData.tone}`);
 
   const suggestMessage = getSheroMessage('suggest');
   const feedbackMessage = getSheroMessage('feedback');
-  iconBtn.classList.remove('off');
+  iconBtn.setAttribute('aria-expanded', String(!card.classList.contains('hidden')));
   if (askAiBtn) askAiBtn.textContent = 'Ask AI about this';
   suggestBlock.classList.remove('hidden');
   feedbackBlock.classList.remove('hidden');
@@ -1047,26 +1809,21 @@ function askAIAboutShero() {
 
 function initShero() {
   const iconBtn = document.getElementById('sheroIconBtn');
-  const clearBtn = document.getElementById('sheroClearBtn');
-  const closeBtn = document.getElementById('sheroCloseBtn');
   const card = document.getElementById('sheroCard');
-  if (!iconBtn || !clearBtn || !closeBtn || !card || iconBtn.dataset.bound === 'yes') return;
+  if (!iconBtn || !card || iconBtn.dataset.bound === 'yes') return;
   iconBtn.dataset.bound = 'yes';
-  clearBtn.dataset.bound = 'yes';
-  closeBtn.dataset.bound = 'yes';
   iconBtn.addEventListener('click', (event) => {
     event.stopPropagation();
-    if (isSheroCleared()) setSheroCleared(false);
+    const willOpen = card.classList.contains('hidden');
     card.classList.toggle('hidden');
-    if (!card.classList.contains('hidden')) renderShero();
+    if (willOpen) renderShero();
+    iconBtn.setAttribute('aria-expanded', String(!card.classList.contains('hidden')));
   });
   card.addEventListener('click', event => event.stopPropagation());
-  clearBtn.addEventListener('click', () => {
-    setSheroCleared(true);
-    renderShero();
+  document.addEventListener('click', () => {
+    card.classList.add('hidden');
+    iconBtn.setAttribute('aria-expanded', 'false');
   });
-  closeBtn.addEventListener('click', () => card.classList.add('hidden'));
-  document.addEventListener('click', () => card.classList.add('hidden'));
   renderShero();
 }
 
@@ -1075,7 +1832,7 @@ function openMuscle(muscle) {
   sheroFocusMuscle = muscle;
   document.getElementById('muscleLabel').textContent = 'Selected: ' + muscle;
   renderSheroQuickPick(muscle);
-  if (!isSheroCleared()) renderShero();
+  renderShero();
   document.getElementById('modalMuscle').textContent = muscle;
   document.getElementById('modalDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const list = document.getElementById('exerciseList');
@@ -1149,7 +1906,7 @@ async function saveWorkout() {
   let workoutDate = new Date();
   if (datePicker === 'yesterday') workoutDate.setDate(workoutDate.getDate() - 1);
   // Block saving workout on a frozen or rest day
-  const workoutDateKey = workoutDate.toLocaleDateString('en-CA');
+  const workoutDateKey = toDateKey(workoutDate);
   const dayLabel = datePicker === 'yesterday' ? 'yesterday' : 'today';
   if (getFreezeDays().includes(workoutDateKey)) {
     alert('❄️ You used a streak freeze for ' + dayLabel + '! You cannot log a workout on a frozen day.');
@@ -1316,7 +2073,7 @@ function renderHistoryCalendar() {
   const workoutMap = {};
   const filteredSessions = getHistoryFilteredSessions();
   filteredSessions.forEach(s => {
-    const key = new Date(s.date).toLocaleDateString('en-CA');
+    const key = toDateKey(s.date);
     if (!workoutMap[key]) workoutMap[key] = { sessions: [], sets: 0 };
     workoutMap[key].sessions.push(s);
     workoutMap[key].sets += s.sets.length;
@@ -1326,7 +2083,7 @@ function renderHistoryCalendar() {
   DAYS.forEach(d => { const el = document.createElement('div'); el.className = 'calDayName'; el.textContent = d; grid.appendChild(el); });
   const firstDay = new Date(histCalYear, histCalMonth, 1).getDay();
   const daysInMonth = new Date(histCalYear, histCalMonth + 1, 0).getDate();
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = toDateKey(new Date());
   for (let i = 0; i < firstDay; i++) { const el = document.createElement('div'); el.className = 'calDay empty'; grid.appendChild(el); }
   for (let d = 1; d <= daysInMonth; d++) {
     const dateKey = `${histCalYear}-${String(histCalMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -1476,7 +2233,7 @@ function renderCalendar() {
   document.getElementById('calMonthLabel').textContent = `${MONTHS[calMonth]} ${calYear}`;
   const workoutMap = {};
   allSessions.forEach(s => {
-    const key = new Date(s.date).toLocaleDateString('en-CA');
+    const key = toDateKey(s.date);
     if (!workoutMap[key]) workoutMap[key] = [];
     workoutMap[key].push(s);
   });
@@ -1486,7 +2243,7 @@ function renderCalendar() {
   DAYS.forEach(d => { const el = document.createElement('div'); el.className = 'calDayName'; el.textContent = d; grid.appendChild(el); });
   const firstDay = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = toDateKey(new Date());
   for (let i = 0; i < firstDay; i++) { const el = document.createElement('div'); el.className = 'calDay empty'; grid.appendChild(el); }
   for (let d = 1; d <= daysInMonth; d++) {
     const dateKey = `${calYear}-${String(calMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -1694,7 +2451,13 @@ function renderPRByMuscle() {
 
 // ─── STREAK FREEZE ────────────────────────────────────────────────────────────
 function getFreezeDays() {
-  return JSON.parse(localStorage.getItem('freezeDays_' + currentUser) || '[]');
+  const key = 'freezeDays_' + currentUser;
+  const raw = JSON.parse(localStorage.getItem(key) || '[]');
+  const normalized = normalizeStoredDateKeys(raw);
+  if (JSON.stringify(raw) !== JSON.stringify(normalized)) {
+    localStorage.setItem(key, JSON.stringify(normalized));
+  }
+  return normalized;
 }
 
 function getFreezeBalance() {
@@ -1747,18 +2510,18 @@ function getFreezeTokens() {
 }
 
 function useFreeze() {
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = toDateKey(new Date());
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayKey = yesterday.toLocaleDateString('en-CA');
+  const yesterdayKey = toDateKey(yesterday);
   const freezeDays = getFreezeDays();
   const restDays = getRestDays();
   const tokens = getFreezeTokens();
   if (tokens <= 0) { alert('❄️ You have no freeze tokens left!'); return; }
-  const todayWorkedOut = allSessions.some(s => new Date(s.date).toLocaleDateString('en-CA') === today);
+  const todayWorkedOut = allSessions.some(s => toDateKey(s.date) === today);
   const todayRest = restDays.includes(today);
   const todayFrozen = freezeDays.includes(today);
-  const yesterdayWorkedOut = allSessions.some(s => new Date(s.date).toLocaleDateString('en-CA') === yesterdayKey);
+  const yesterdayWorkedOut = allSessions.some(s => toDateKey(s.date) === yesterdayKey);
   const yesterdayRest = restDays.includes(yesterdayKey);
   const yesterdayFrozen = freezeDays.includes(yesterdayKey);
   const canFreezeToday = !todayWorkedOut && !todayRest && !todayFrozen;
@@ -1831,7 +2594,7 @@ function applyFreeze(dateKey) {
   if (calYear !== undefined) renderCalendar();
   const modal = document.getElementById('freezeModal');
   if (modal) modal.remove();
-  const label = dateKey === new Date().toLocaleDateString('en-CA') ? 'today' : 'yesterday';
+  const label = dateKey === toDateKey(new Date()) ? 'today' : 'yesterday';
   const remaining = getFreezeTokens();
   alert(`❄️ Streak frozen for ${label}! You have ${remaining} freeze token${remaining !== 1 ? 's' : ''} left.`);
 }
@@ -1851,10 +2614,133 @@ function toggleHeightUnit() {
   document.getElementById('heightFt').classList.toggle('hidden', unit === 'cm');
 }
 
+function populatePriorityMuscleOptions() {
+  const muscles = Object.keys(EXERCISES).sort((a, b) => a.localeCompare(b));
+  const selects = [document.getElementById('aboutPriority1'), document.getElementById('aboutPriority2')].filter(Boolean);
+  selects.forEach((select, index) => {
+    const currentValue = select.value;
+    const placeholder = index === 0 ? 'Priority muscle 1' : 'Priority muscle 2 (optional)';
+    select.innerHTML = `<option value="">${placeholder}</option>${muscles.map(muscle => `<option value="${muscle}">${muscle}</option>`).join('')}`;
+    select.value = currentValue || '';
+  });
+}
+
+const WORKOUT_SPLIT_CHIPS = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Chest', 'Back', 'Shoulders', 'Arms', 'Core', 'Full Body', 'Rest'];
+
+function normalizeWorkoutSplitPlan(data = {}) {
+  if (Array.isArray(data.workoutSplitPlan) && data.workoutSplitPlan.length) {
+    return data.workoutSplitPlan.map(item => String(item || '').trim()).filter(Boolean);
+  }
+  if (typeof data.workoutSplit === 'string' && data.workoutSplit.trim()) {
+    return data.workoutSplit.split('/').map(part => part.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function renderWorkoutSplitBuilder(plan = null) {
+  const daysEl = document.getElementById('aboutTrainingDays');
+  const builderEl = document.getElementById('aboutSplitBuilder');
+  const gridEl = document.getElementById('aboutSplitDaysGrid');
+  const poolEl = document.getElementById('aboutSplitChipPool');
+  if (!daysEl || !builderEl || !gridEl || !poolEl) return;
+
+  const days = parseInt(daysEl.value || '0', 10);
+  if (Array.isArray(plan)) workoutSplitDraft = plan.slice();
+
+  if (!days) {
+    workoutSplitDraft = [];
+    selectedWorkoutSplitChip = '';
+    builderEl.classList.add('inactive');
+    gridEl.innerHTML = '<div class="splitEmptyState">Select how many days you train, then fill each day box.</div>';
+    poolEl.innerHTML = '';
+    return;
+  }
+
+  builderEl.classList.remove('inactive');
+  workoutSplitDraft = Array.from({ length: days }, (_, index) => workoutSplitDraft[index] || '');
+
+  gridEl.innerHTML = workoutSplitDraft.map((value, index) => `
+    <button
+      type="button"
+      class="splitDayBox ${value ? 'filled' : 'empty'}"
+      onclick="assignWorkoutSplitToDay(${index})"
+      ondragover="handleWorkoutSplitDragOver(event)"
+      ondragleave="handleWorkoutSplitDragLeave(event)"
+      ondrop="handleWorkoutSplitDrop(event, ${index})"
+    >
+      <span class="splitDayLabel">Day ${index + 1}</span>
+      <span class="splitDayValue">${value || 'Tap or drop a chip here'}</span>
+      ${value ? `<span class="splitDayClear" onclick="clearWorkoutSplitDay(event, ${index})">✕</span>` : ''}
+    </button>
+  `).join('');
+
+  poolEl.innerHTML = WORKOUT_SPLIT_CHIPS.map(chip => `
+    <button
+      type="button"
+      class="splitChip ${selectedWorkoutSplitChip === chip ? 'selected' : ''}"
+      data-split="${chip}"
+      draggable="true"
+      onclick="selectWorkoutSplitChip('${chip}')"
+      ondragstart="handleWorkoutSplitDragStart(event, '${chip}')"
+    >${chip}</button>
+  `).join('');
+}
+
+function selectWorkoutSplitChip(value) {
+  selectedWorkoutSplitChip = value;
+  document.querySelectorAll('#aboutSplitChipPool .splitChip').forEach(chip => {
+    chip.classList.toggle('selected', chip.dataset.split === value);
+  });
+}
+
+function assignWorkoutSplitToDay(index) {
+  if (!selectedWorkoutSplitChip) return;
+  workoutSplitDraft[index] = selectedWorkoutSplitChip;
+  renderWorkoutSplitBuilder();
+}
+
+function clearWorkoutSplitDay(event, index) {
+  event.preventDefault();
+  event.stopPropagation();
+  workoutSplitDraft[index] = '';
+  renderWorkoutSplitBuilder();
+}
+
+function handleWorkoutSplitDragStart(event, value) {
+  selectedWorkoutSplitChip = value;
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('text/plain', value);
+    event.dataTransfer.effectAllowed = 'copy';
+  }
+  selectWorkoutSplitChip(value);
+}
+
+function handleWorkoutSplitDragOver(event) {
+  event.preventDefault();
+  event.currentTarget.classList.add('drag-over');
+}
+
+function handleWorkoutSplitDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+
+function handleWorkoutSplitDrop(event, index) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  const value = event.dataTransfer?.getData('text/plain') || selectedWorkoutSplitChip;
+  if (!value) return;
+  selectedWorkoutSplitChip = value;
+  workoutSplitDraft[index] = value;
+  renderWorkoutSplitBuilder();
+}
+
 function loadAbout() {
   const data = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
-  const hasData = data.name || data.age || data.heightCm || data.heightFt || data.weight || data.goal || data.weekStart;
+  const priorityMuscles = getPriorityMusclesFromData(data);
+  const hasData = data.name || data.age || data.gender || data.heightCm || data.heightFt || data.weight || data.goal || data.weekStart || data.trainingDays || data.workoutSplit || priorityMuscles.length;
   loadProfileImage();
+  renderAboutHeader(data);
+  toggleWorkoutSplitEditor(false);
   if (hasData) {
     document.getElementById('aboutViewMode').classList.remove('hidden');
     document.getElementById('aboutEditMode').classList.add('hidden');
@@ -1867,34 +2753,97 @@ function loadAbout() {
   }
   if (data.name) document.getElementById('aboutName').value = data.name;
   if (data.age) document.getElementById('aboutAge').value = data.age;
+  if (data.gender) document.getElementById('aboutGender').value = data.gender;
   if (data.heightCm) document.getElementById('aboutHeightCm').value = data.heightCm;
   if (data.heightFt) document.getElementById('aboutHeightFt').value = data.heightFt;
   if (data.heightIn) document.getElementById('aboutHeightIn').value = data.heightIn;
   if (data.weight) document.getElementById('aboutWeight').value = data.weight;
   if (data.weightUnit) document.getElementById('weightUnit').value = data.weightUnit;
   if (data.goal) document.getElementById('aboutGoal').value = data.goal;
+  document.getElementById('aboutTrainingDays').value = data.trainingDays || '';
+  renderWorkoutSplitBuilder(normalizeWorkoutSplitPlan(data));
   document.getElementById('aboutWeekStart').value = data.weekStart || 'monday';
+  populatePriorityMuscleOptions();
+  document.getElementById('aboutPriority1').value = priorityMuscles[0] || '';
+  document.getElementById('aboutPriority2').value = priorityMuscles[1] || '';
   if (data.heightUnit) { document.getElementById('heightUnit').value = data.heightUnit; toggleHeightUnit(); }
   renderAboutStats();
 }
 
+function renderAboutHeader(data = {}) {
+  const nameEl = document.getElementById('aboutProfileName');
+  const splitEl = document.getElementById('aboutProfileSplit');
+  const splitBtn = document.getElementById('aboutSplitQuickEditBtn');
+  if (nameEl) nameEl.textContent = data.name || currentUser || 'Your Name';
+  if (splitEl) {
+    if (data.trainingDays && data.workoutSplit) splitEl.textContent = `${data.trainingDays} days · ${data.workoutSplit}`;
+    else if (data.trainingDays) splitEl.textContent = `${data.trainingDays} day plan not set yet`;
+    else splitEl.textContent = data.workoutSplit || 'Add your workout split';
+  }
+  if (splitBtn) splitBtn.classList.toggle('hidden', !data.name && !data.goal && !data.trainingDays && !data.workoutSplit);
+}
+
+function toggleWorkoutSplitEditor(forceOpen) {
+  const card = document.getElementById('aboutSplitEditorCard');
+  if (!card) return;
+  const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : card.classList.contains('hidden');
+  if (shouldOpen) {
+    const data = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
+    const trainingDaysEl = document.getElementById('aboutTrainingDays');
+    if (trainingDaysEl) trainingDaysEl.value = data.trainingDays || trainingDaysEl.value || '';
+    renderWorkoutSplitBuilder(normalizeWorkoutSplitPlan(data));
+    card.classList.remove('hidden');
+    requestAnimationFrame(() => card.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  } else {
+    card.classList.add('hidden');
+  }
+}
+
+function saveWorkoutSplitOnly() {
+  const trainingDays = parseInt(document.getElementById('aboutTrainingDays').value || '0', 10);
+  const workoutSplitPlan = trainingDays ? workoutSplitDraft.slice(0, trainingDays) : [];
+  if (trainingDays && workoutSplitPlan.some(day => !day)) {
+    alert('Fill each workout split day before saving.');
+    return;
+  }
+
+  const data = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
+  data.trainingDays = trainingDays ? String(trainingDays) : '';
+  data.workoutSplitPlan = workoutSplitPlan;
+  data.workoutSplit = workoutSplitPlan.join(' / ');
+  localStorage.setItem('about_' + currentUser, JSON.stringify(data));
+  renderAboutHeader(data);
+  renderAboutView(data);
+  renderShero();
+  renderAIContextStrip();
+  toggleWorkoutSplitEditor(false);
+  alert('Workout split updated! ✅');
+}
+
 function enableAboutEdit() {
+  toggleWorkoutSplitEditor(false);
   document.getElementById('aboutViewMode').classList.add('hidden');
   document.getElementById('aboutEditMode').classList.remove('hidden');
 }
 
 function renderAboutView(data) {
+  renderAboutHeader(data);
+  const splitBtn = document.getElementById('aboutSplitQuickEditBtn');
+  if (splitBtn) splitBtn.classList.remove('hidden');
   let height = '—';
   if (data.heightUnit === 'ft' && data.heightFt) height = `${data.heightFt}ft ${data.heightIn || 0}in`;
   else if (data.heightCm) height = `${data.heightCm} cm`;
   const weekStart = (data.weekStart || 'monday');
   const weekStartLabel = weekStart.charAt(0).toUpperCase() + weekStart.slice(1);
+  const priorityMuscles = getPriorityMusclesFromData(data);
   const fields = [
-    { label: 'Name', value: data.name || '—' },
     { label: 'Age', value: data.age ? data.age + ' yrs' : '—' },
+    { label: 'Gender', value: data.gender || '—' },
     { label: 'Height', value: height },
     { label: 'Weight', value: data.weight ? data.weight + ' ' + (data.weightUnit || 'lbs') : '—' },
     { label: 'Goal', value: data.goal || '—' },
+    { label: 'Training Days', value: data.trainingDays ? `${data.trainingDays} / week` : '—' },
+    { label: 'Priority Muscles', value: priorityMuscles.length ? priorityMuscles.join(' · ') : '—' },
     { label: 'Week Start', value: `<span class="weekStartChip">${weekStartLabel}</span>`, isHtml: true },
   ];
   document.getElementById('aboutViewGrid').innerHTML = fields.map(f => `
@@ -1906,9 +2855,23 @@ function renderAboutView(data) {
 
 function saveAbout() {
   const heightUnit = document.getElementById('heightUnit').value;
+  const priority1 = document.getElementById('aboutPriority1')?.value || '';
+  const priority2 = document.getElementById('aboutPriority2')?.value || '';
+  if (priority1 && priority1 === priority2) {
+    alert('Pick two different priority muscles or leave the second one blank.');
+    return;
+  }
+  const trainingDays = parseInt(document.getElementById('aboutTrainingDays').value || '0', 10);
+  const workoutSplitPlan = trainingDays ? workoutSplitDraft.slice(0, trainingDays) : [];
+  if (trainingDays && workoutSplitPlan.some(day => !day)) {
+    alert('Fill each workout split day before saving.');
+    return;
+  }
+
   const data = {
     name: document.getElementById('aboutName').value,
     age: document.getElementById('aboutAge').value,
+    gender: document.getElementById('aboutGender').value,
     heightUnit,
     heightCm: document.getElementById('aboutHeightCm').value,
     heightFt: document.getElementById('aboutHeightFt').value,
@@ -1916,7 +2879,11 @@ function saveAbout() {
     weight: document.getElementById('aboutWeight').value,
     weightUnit: document.getElementById('weightUnit').value,
     goal: document.getElementById('aboutGoal').value,
-    weekStart: document.getElementById('aboutWeekStart').value || 'monday'
+    weekStart: document.getElementById('aboutWeekStart').value || 'monday',
+    trainingDays: trainingDays ? String(trainingDays) : '',
+    workoutSplitPlan,
+    workoutSplit: workoutSplitPlan.join(' / '),
+    priorityMuscles: [priority1, priority2].filter(Boolean)
   };
   localStorage.setItem('about_' + currentUser, JSON.stringify(data));
   document.getElementById('aboutEditMode').classList.add('hidden');
@@ -1992,11 +2959,14 @@ function renderAIContextStrip() {
   const weekSessions = typeof getCurrentWeekSessions === 'function' ? getCurrentWeekSessions() : [];
   const goals = typeof getGoals === 'function' ? getGoals().filter(goal => !goal.completed) : [];
   const weekStart = about.weekStart ? `${about.weekStart.charAt(0).toUpperCase() + about.weekStart.slice(1)}` : 'Monday';
+  const priorityMuscles = getPriorityMusclesFromData(about);
 
   const items = [
     { label: 'Last trained', value: latest ? latest.muscle : 'No data' },
     { label: 'This cycle', value: `${weekSessions.length} workout${weekSessions.length !== 1 ? 's' : ''}` },
     { label: 'Goal', value: about.goal || goals[0]?.name || goals[0]?.exercise || 'Not set' },
+    { label: 'Split', value: about.workoutSplit ? `${about.trainingDays ? `${about.trainingDays}d · ` : ''}${about.workoutSplit}` : 'Not set' },
+    { label: 'Priorities', value: priorityMuscles.length ? priorityMuscles.join(' · ') : 'Not set' },
     { label: 'Week start', value: weekStart }
   ];
 
@@ -2043,13 +3013,15 @@ function formatGoalForAI(goal) {
 
 function getContext() {
   const about = JSON.parse(localStorage.getItem('about_' + currentUser) || '{}');
+  const priorityMuscles = getPriorityMusclesFromData(about);
   const goals = typeof getGoals === 'function' ? getGoals() : [];
   const restDays = typeof getRestDays === 'function' ? getRestDays() : [];
   const freezeDays = typeof getFreezeDays === 'function' ? getFreezeDays() : [];
   const weeklyCounts = typeof getWeeklyMuscleSetCounts === 'function' ? getWeeklyMuscleSetCounts() : {};
   const weekWindow = typeof getCurrentWeekWindow === 'function' ? getCurrentWeekWindow() : null;
+  const patternInsights = typeof getTrainingPatternInsights === 'function' ? getTrainingPatternInsights() : [];
   const totalSets = allSessions.reduce((sum, session) => sum + (session.sets?.length || 0), 0);
-  const workoutDays = new Set(allSessions.map(session => new Date(session.date).toLocaleDateString('en-CA'))).size;
+  const workoutDays = new Set(allSessions.map(session => toDateKey(session.date)).filter(Boolean)).size;
 
   const allTimeMuscleSets = allSessions.reduce((acc, session) => {
     acc[session.muscle] = (acc[session.muscle] || 0) + (session.sets?.length || 0);
@@ -2086,7 +3058,11 @@ function getContext() {
   const profileSummary = [
     about.name ? `Name: ${about.name}` : `Username: ${currentUser}`,
     about.age ? `Age: ${about.age}` : '',
+    about.gender ? `Gender: ${about.gender}` : '',
     about.goal ? `Goal: ${about.goal}` : '',
+    about.trainingDays ? `Training days per week: ${about.trainingDays}` : '',
+    about.workoutSplit ? `Workout split: ${about.workoutSplit}` : '',
+    priorityMuscles.length ? `Priority muscles: ${priorityMuscles.join(', ')}` : '',
     about.weight ? `Weight: ${about.weight} ${about.weightUnit || 'lbs'}` : '',
     about.heightCm ? `Height: ${about.heightCm} cm` : (about.heightFt ? `Height: ${about.heightFt}ft ${about.heightIn || 0}in` : ''),
     about.weekStart ? `Week starts on: ${about.weekStart}` : ''
@@ -2102,6 +3078,7 @@ function getContext() {
     `Current weekly cycle: ${weekWindow ? `${weekWindow.monday.toLocaleDateString('en-US')} to ${weekWindow.sunday.toLocaleDateString('en-US')}` : 'Not available'}.`,
     `Weekly cycle muscle summary: ${weeklySummary}`,
     `All-time muscle summary: ${allTimeSummary}`,
+    `Pattern insights: ${patternInsights.length ? patternInsights.join(' | ') : 'No clear pattern yet.'}`,
     `Rest days logged: ${restDays.length ? restDays.join(', ') : 'None'}`,
     `Freeze days logged: ${freezeDays.length ? freezeDays.join(', ') : 'None'}`,
     `Active goals: ${activeGoals}`,

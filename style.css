@@ -168,13 +168,15 @@ main{flex:1;padding:10px 16px 96px;max-width:1200px;margin:0 auto;width:100%;ove
   font-size:1.05rem;
   cursor:pointer;
   box-shadow:0 8px 20px rgba(0,0,0,.22);
+  transition:border-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
-.sheroIconBtn.off{
-  border-color:rgba(120,120,120,.35);
-  background:linear-gradient(135deg,rgba(90,90,90,.18),rgba(70,70,70,.08));
-  color:#7f7f7f;
-  filter:saturate(.2) brightness(.8);
+.sheroIconBtn:hover{
+  border-color:rgba(240,201,90,.65);
+  box-shadow:0 10px 24px rgba(0,0,0,.28),0 0 16px rgba(240,201,90,.14);
 }
+.sheroIconBtn.score-high{border-color:rgba(39,174,96,.5);background:linear-gradient(135deg,rgba(39,174,96,.22),rgba(39,174,96,.08));color:#7ee2a9;box-shadow:0 8px 20px rgba(0,0,0,.22),0 0 14px rgba(39,174,96,.28)}
+.sheroIconBtn.score-mid{border-color:rgba(240,201,90,.5);background:linear-gradient(135deg,rgba(240,201,90,.2),rgba(240,201,90,.08));color:#f6d46f;box-shadow:0 8px 20px rgba(0,0,0,.22),0 0 14px rgba(240,201,90,.24)}
+.sheroIconBtn.score-low{border-color:rgba(231,76,60,.5);background:linear-gradient(135deg,rgba(231,76,60,.22),rgba(231,76,60,.08));color:#ff9f95;box-shadow:0 8px 20px rgba(0,0,0,.22),0 0 14px rgba(231,76,60,.24)}
 .sheroCard{
   position:absolute;
   top:50%;
@@ -200,8 +202,7 @@ main{flex:1;padding:10px 16px 96px;max-width:1200px;margin:0 auto;width:100%;ove
   border-right:1px solid rgba(240,201,90,.3);
   transform:rotate(45deg);
 }
-.sheroTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
-.sheroTopActions{display:flex;align-items:center;gap:8px}
+.sheroTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
 .sheroBadge{
   display:inline-flex;
   align-items:center;
@@ -215,25 +216,29 @@ main{flex:1;padding:10px 16px 96px;max-width:1200px;margin:0 auto;width:100%;ove
   text-transform:uppercase;
   font-weight:700;
 }
-.sheroClearBtn{
-  background:none;
-  border:1px solid rgba(240,201,90,.22);
-  color:#cdb264;
+.sheroScoreChip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 10px;
   border-radius:999px;
-  padding:3px 8px;
-  font-size:.6rem;
-  letter-spacing:.8px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.08);
+  color:#cfd8dc;
+  font-size:.61rem;
+  letter-spacing:.9px;
   text-transform:uppercase;
-  cursor:pointer;
+  font-weight:700;
+  white-space:nowrap;
 }
-.sheroCloseBtn{
-  background:none;
-  border:none;
-  color:#d8c27c;
-  font-size:1rem;
-  line-height:1;
-  cursor:pointer;
+.sheroScoreNum{
+  font-size:.82rem;
+  font-weight:800;
+  letter-spacing:.3px;
 }
+.sheroScoreChip.high .sheroScoreNum{color:#27ae60;}
+.sheroScoreChip.mid .sheroScoreNum{color:#f0c95a;}
+.sheroScoreChip.low .sheroScoreNum{color:#e74c3c;}
 .sheroMood{
   color:#cdb264;
   font-size:.62rem;
@@ -432,14 +437,29 @@ canvas{max-height:260px}
   .chartHeaderRow{align-items:stretch}
   .chartControlStack{align-items:flex-start;width:100%}
   .chartMetricChips,.chartRangeChips{width:100%}
+  .aboutHeaderRow{align-items:center}
+  .aboutIdentityName{font-size:1.45rem}
+  .aboutIdentitySplitRow{gap:8px;flex-wrap:wrap}
+  .splitEditorActions{justify-content:flex-start;flex-wrap:nowrap}
+  .splitDayBox{flex:1 1 100%;max-width:100%}
 }
 
 /* ─── ABOUT PAGE ───────────────────────────────────────────── */
 .aboutCard{background:var(--bg3);border-radius:var(--pageRadius);padding:24px;max-width:600px;width:100%;border:1px solid var(--border);box-shadow:var(--cardShadow)}
-.avatarWrap{position:relative;display:inline-block;margin-bottom:16px;}
+.aboutHeaderRow{display:flex;align-items:stretch;gap:16px;margin-bottom:16px}
+.avatarWrap{position:relative;display:inline-block;flex:0 0 auto;margin-bottom:0;}
 .avatar{width:88px;height:88px;border-radius:50%;background:var(--goldGrad);display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:700;color:#000;font-family:'Bebas Neue',sans-serif;box-shadow:var(--goldGlow)}
 .avatarEditBtn{position:absolute;bottom:0;right:0;width:26px;height:26px;background:var(--goldGrad);border:2px solid var(--bg3);border-radius:50%;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;transition:.2s;}
 .avatarEditBtn:hover{box-shadow:var(--goldGlow);transform:scale(1.1);}
+.aboutIdentitySummary{min-height:88px;display:flex;flex-direction:column;justify-content:center;gap:6px;flex:1;padding:4px 0}
+.aboutIdentityName{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:1px;color:var(--text);line-height:1}
+.aboutIdentitySplitRow{display:flex;align-items:center;gap:10px}
+.aboutIdentitySplit{font-size:.82rem;color:var(--text4);font-weight:600;line-height:1.45;word-break:break-word;flex:1}
+.splitQuickEditBtn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid rgba(201,168,76,.22);background:rgba(201,168,76,.08);color:var(--gold2);padding:0;border-radius:50%;cursor:pointer;font-size:.72rem;line-height:1;transition:.2s;flex:0 0 auto}
+.splitQuickEditBtn:hover{border-color:rgba(201,168,76,.42);box-shadow:0 0 0 1px rgba(201,168,76,.1) inset;transform:translateY(-1px)}
+.aboutSplitEditorCard{margin:0 0 16px;width:100%}
+.splitEditorActions{display:flex;gap:10px;align-items:center;justify-content:stretch;flex-wrap:nowrap;width:100%;margin-top:6px}
+.splitEditorActions .btn{display:inline-flex;align-items:center;justify-content:center;width:100% !important;flex:1 1 0;white-space:nowrap;margin-top:0}
 .aboutForm{display:flex;flex-direction:column;gap:16px}
 .formGroup{display:flex;flex-direction:column;gap:6px}
 .formGroup label{color:var(--text4);font-size:.75rem;font-weight:600;letter-spacing:1px;text-transform:uppercase}
@@ -455,6 +475,32 @@ canvas{max-height:260px}
 .heightOptions select,.weightOptions select{width:auto;padding:11px}
 .heightOptions span,.weightOptions span{color:var(--text4);font-size:.85rem}
 .heightOptions input,.weightOptions input{flex:1}
+.splitBuilderGroup{padding:12px;border:1px solid var(--border2);border-radius:12px;background:rgba(255,255,255,.02)}
+.splitBuilder{display:flex;flex-direction:column;gap:10px}
+.splitBuilder.inactive{opacity:.95}
+.splitBuilderHint{font-size:.72rem;color:var(--text4);line-height:1.45}
+.splitEmptyState{padding:12px;border-radius:10px;border:1px dashed var(--border2);background:var(--bg4);color:var(--text4);text-align:center;font-size:.8rem}
+.splitDaysGrid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.splitDayBox{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:6px;min-height:74px;flex:0 1 calc(33.333% - 10px);max-width:calc(33.333% - 10px);padding:12px 36px 12px 12px;border-radius:12px;border:1px dashed var(--border2);background:var(--bg4);color:var(--text);text-align:left;cursor:pointer;transition:.2s;font-family:'Inter',sans-serif}
+.splitDayBox.filled{border-style:solid;border-color:rgba(201,168,76,.32);background:rgba(201,168,76,.08)}
+.splitDayBox:hover,.splitDayBox.drag-over{border-color:var(--gold3);box-shadow:0 0 0 1px rgba(201,168,76,.12) inset}
+.splitDayLabel{font-size:.68rem;color:var(--text4);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.splitDayValue{font-size:.92rem;font-weight:600;color:var(--text);line-height:1.35}
+.splitDayBox.filled .splitDayValue{width:100%;text-align:center;text-transform:uppercase;letter-spacing:.8px;margin-top:auto;margin-bottom:auto}
+.splitDayBox.empty{align-items:center;justify-content:center;text-align:center;padding:12px}
+.splitDayBox.empty .splitDayLabel,.splitDayBox.empty .splitDayValue{width:100%;text-align:center}
+.splitDayBox.empty .splitDayValue{color:var(--text4);font-weight:500;font-size:.78rem}
+.splitDayClear{position:absolute;top:8px;right:8px;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.06);color:var(--text4);font-size:.72rem}
+.splitChipPool{display:flex;flex-wrap:wrap;gap:8px}
+.splitChip{border:1px solid var(--border2);background:var(--bg4);color:var(--text3);padding:8px 12px;border-radius:999px;cursor:grab;font-size:.78rem;font-weight:700;letter-spacing:.3px;transition:.2s;font-family:'Inter',sans-serif}
+.splitChip:hover{border-color:var(--gold3);color:var(--gold2)}
+.splitChip.selected{background:rgba(201,168,76,.12);border-color:rgba(201,168,76,.42);color:var(--gold2);box-shadow:0 0 0 1px rgba(201,168,76,.12) inset}
+.priorityMuscleGroup{padding:10px 12px;border:1px solid var(--border2);border-radius:12px;background:rgba(255,255,255,.02)}
+.priorityMuscleRow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.priorityField{display:flex;flex-direction:column;gap:6px}
+.priorityField span{font-size:.68rem;color:var(--text4);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.priorityMuscleRow select{width:100%;min-height:42px;padding:9px 12px}
+.formHint{font-size:.72rem;color:var(--text4);line-height:1.45}
 .aboutStats{margin-top:24px}
 
 /* ─── ABOUT VIEW MODE ──────────────────────────────────────── */
@@ -875,6 +921,7 @@ canvas{max-height:260px}
 }
 @media (max-width:560px){
   .historyFilterChip{padding:6px 10px;font-size:.68rem;}
+  .priorityMuscleRow{grid-template-columns:1fr;}
 }
 
 /* ─── PR CELEBRATION ───────────────────────────────────────── */
