@@ -365,9 +365,18 @@
                     ${Object.keys(muscleMap[muscle]).map(ex => {
                       const pr = muscleMap[muscle][ex];
                       const date = new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                      const elite = window.ELITE_1RM[ex];
-                      const pct = elite ? Math.round((pr.est1rm / elite) * 100) : null;
-                      return `<div class="prCard"><div class="prExName">${ex}</div><div class="prRight"><div class="prWeightBig">${pr.weight}<span>lbs</span></div><div class="prRepsDate">${pr.reps} reps · ${date}</div><div class=\"prEliteScore\">1RM: ${pr.est1rm}${elite ? ` (${pct}% of Elite)` : ''}</div></div></div>`;
+                      // Get elite percent if available
+                      let elitePercent = '';
+                      if (window.getExerciseElitePercent) {
+                        const pct = window.getExerciseElitePercent(ex, pr.weight);
+                        if (typeof pct === 'number' && !isNaN(pct)) {
+                          let color = '#e74c3c'; // red
+                          if (pct >= 70) color = '#27ae60'; // green
+                          else if (pct >= 40) color = '#f39c12'; // orange
+                          elitePercent = ` <span style=\"color:${color};font-weight:600;\">[${pct}]</span>`;
+                        }
+                      }
+                      return `<div class=\"prCard\"><div class=\"prExName\">${ex}${elitePercent}</div><div class=\"prRight\"><div class=\"prWeightBig\">${pr.weight}<span>lbs</span></div><div class=\"prRepsDate\">${pr.reps} reps · ${date}</div></div></div>`;
                     }).join('')}
                   </div>`).join('');
               }
@@ -400,58 +409,59 @@
               <button class="avatarEditBtn" onclick="document.getElementById('profileImageInput').click()" title="Change photo">📷</button>
             </div>
             <div class="aboutIdentitySummary">
-              <div class="aboutIdentityName" id="aboutProfileName">Your Name</div>
-                            <div class="aboutIdentityName" id="aboutProfileName">Your Name <span id="overallStrengthScore" style="font-size:1rem;color:#27ae60"></span></div>
-                      <script>
-                      // Enhance PR display with 1RM and elite percent
-                      function renderPRByMuscleWithElite() {
-                        const el = document.getElementById('prByMuscle');
-                        if (!window.allSessions || !allSessions.length) { el.innerHTML = '<div class="emptyState">No workouts logged yet. Start lifting to see your PRs! 💪</div>'; return; }
-                        const muscleMap = {};
-                        allSessions.forEach(s => {
-                          if (!muscleMap[s.muscle]) muscleMap[s.muscle] = {};
-                          s.sets.forEach(set => {
-                            const w = parseFloat(set.weight || 0);
-                            const r = parseInt(set.reps || 0);
-                            const est1rm = window.calc1RM(w, r);
-                            if (!muscleMap[s.muscle][s.exercise] || est1rm > muscleMap[s.muscle][s.exercise].est1rm) {
-                              muscleMap[s.muscle][s.exercise] = { weight: w, reps: r, est1rm, date: s.date };
-                            }
-                          });
-                        });
-                        el.innerHTML = Object.keys(muscleMap).map(muscle => `
-                          <div class="prMuscleSection">
-                            <div class="prMuscleHeader">${muscle}</div>
-                            ${Object.keys(muscleMap[muscle]).map(ex => {
-                              const pr = muscleMap[muscle][ex];
-                              const date = new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                              const elite = window.ELITE_1RM[ex];
-                              const pct = elite ? Math.round((pr.est1rm / elite) * 100) : null;
-                              return `<div class="prCard"><div class="prExName">${ex}</div><div class="prRight"><div class="prWeightBig">${pr.weight}<span>lbs</span></div><div class="prRepsDate">${pr.reps} reps · ${date}</div>${elite ? `<div class=\"prEliteScore\">1RM: ${pr.est1rm} (${pct}% of Elite)</div>` : ''}</div></div>`;
-                            }).join('')}
-                          </div>`).join('');
-                      }
-                      // Patch the original renderPRByMuscle
-                      window.renderPRByMuscle = renderPRByMuscleWithElite;
-                      // Update overall strength score in profile
-                      function updateOverallStrengthScoreDisplay() {
-                        const el = document.getElementById('overallStrengthScore');
-                        if (el && window.getOverallStrengthScore) {
-                          const score = window.getOverallStrengthScore();
-                          el.textContent = score ? `· Strength Score: ${score}% of Elite` : '';
-                        }
-                      }
-                      // Call after profile render
-                      document.addEventListener('DOMContentLoaded', updateOverallStrengthScoreDisplay);
-                      // If profile is re-rendered by app, patch renderAboutHeader
-                      if (window.renderAboutHeader) {
-                        const origRenderAboutHeader = window.renderAboutHeader;
-                        window.renderAboutHeader = function(...args) {
-                          origRenderAboutHeader.apply(this, args);
-                          updateOverallStrengthScoreDisplay();
-                        };
-                      }
-                      </script>
+              <div class="aboutIdentityName" id="aboutProfileName">Your Name <span id="overallStrengthScore" style="font-size:1rem;color:#27ae60"></span></div>
+              <div id="profileRankBarWrap" style="margin-top:6px;"></div>
+              <script>
+              // --- Profile Rank Bar Logic ---
+              function getRankInfo(score) {
+                // Score brackets and colors for each rank
+                const ranks = [
+                  { name: 'Bronze 2', min: 0, max: 14, color: '#b08d57' },
+                  { name: 'Bronze 1', min: 15, max: 29, color: '#b08d57' },
+                  { name: 'Silver 2', min: 30, max: 44, color: '#bfc1c2' },
+                  { name: 'Silver 1', min: 45, max: 59, color: '#bfc1c2' },
+                  { name: 'Gold 2', min: 60, max: 69, color: '#FFD700' },
+                  { name: 'Gold 1', min: 70, max: 79, color: '#FFD700' },
+                  { name: 'Crown 2', min: 80, max: 87, color: '#7b6c9c' },
+                  { name: 'Crown 1', min: 88, max: 94, color: '#7b6c9c' },
+                  { name: 'ACE', min: 95, max: 200, color: '#27ae60' }
+                ];
+                for (let i = ranks.length - 1; i >= 0; i--) {
+                  if (score >= ranks[i].min) {
+                    return ranks[i];
+                  }
+                }
+                return ranks[0];
+              }
+
+              function renderProfileRankBar() {
+                const score = window.getOverallStrengthScore ? window.getOverallStrengthScore() : 0;
+                const rank = getRankInfo(score);
+                // Progress within current rank
+                const prev = rank.min;
+                const next = rank.max + 1;
+                const pct = Math.max(0, Math.min(1, (score - prev) / (next - prev)));
+                const bar = `<div style="display:flex;align-items:center;gap:8px;">
+                  <span style="min-width:80px;font-size:.95em;color:${rank.color};font-weight:600;">${rank.name}</span>
+                  <div style="flex:1;height:10px;background:#222;border-radius:6px;overflow:hidden;box-shadow:0 1px 4px #0002;">
+                    <div style="height:100%;width:${Math.round(pct*100)}%;background:${rank.color};transition:width .4s;border-radius:6px;"></div>
+                  </div>
+                  <span style="font-size:.9em;color:${rank.color};font-weight:500;margin-left:6px;">${score}</span>
+                </div>`;
+                const wrap = document.getElementById('profileRankBarWrap');
+                if (wrap) wrap.innerHTML = bar;
+              }
+              // Run on load and after profile update
+              document.addEventListener('DOMContentLoaded', renderProfileRankBar);
+              if (window.renderAboutHeader) {
+                const orig = window.renderAboutHeader;
+                window.renderAboutHeader = function(...args) {
+                  orig.apply(this, args);
+                  renderProfileRankBar();
+                };
+              }
+              </script>
+                      <!-- Script removed: duplicate renderPRByMuscleWithElite and profile score logic. -->
               <div class="aboutIdentitySplitRow">
                 <div class="aboutIdentitySplit" id="aboutProfileSplit">Add your workout split</div>
                 <button class="splitQuickEditBtn" id="aboutSplitQuickEditBtn" type="button" onclick="toggleWorkoutSplitEditor()" aria-label="Edit workout split" title="Edit workout split">✏️</button>

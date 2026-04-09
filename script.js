@@ -2582,9 +2582,20 @@ function renderPRByMuscle() {
       ${Object.keys(muscleMap[muscle]).map(ex => {
         const pr = muscleMap[muscle][ex];
         const date = new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        const elite = window.ELITE_1RM ? window.ELITE_1RM[ex] : null;
-        const pct = elite ? Math.round((pr.est1rm / elite) * 100) : null;
-        return `<div class="prCard"><div class="prExName">${ex}</div><div class="prRight"><div class="prWeightBig">${pr.weight}<span>lbs</span></div><div class="prRepsDate">${pr.reps} reps · ${date}</div><div class=\"prEliteScore\">1RM: ${pr.est1rm}${elite ? ` (${pct}% of Elite)` : ''}</div></div></div>`;
+        let display = '';
+        // List of rep-based exercises (elite is a rep count, not a weight)
+        const repBased = ['Push-Up','Pull-Up','Chin-Up','Crunch','Plank','Leg Raise','Russian Twist','Hanging Knee Raise','Ab Rollout','Nordic Curl','Glute-Ham Raise','Diamond Push-Up','Jump Rope','Dead Hang'];
+        if (window.ELITE_1RM && window.ELITE_1RM[ex]) {
+          if (repBased.some(r => ex.includes(r))) {
+            // Show best reps / elite reps
+            display = `<span style='font-size:0.85em;color:#aaa;'>[${pr.reps}/${window.ELITE_1RM[ex]}]</span>`;
+          } else {
+            // Show percent of elite for weighted lifts (gray)
+            const pct = Math.round((pr.est1rm / window.ELITE_1RM[ex]) * 100);
+            display = `<span style='font-size:0.85em;color:#aaa;'>[${pct}]</span>`;
+          }
+        }
+        return `<div class="prCard"><div class="prExName">${ex} ${display}</div><div class="prRight"><div class="prWeightBig">${pr.weight}<span>lbs</span></div><div class="prRepsDate">${pr.reps} reps · ${date}</div></div></div>`;
       }).join('')}
     </div>`).join('');
 }
@@ -2916,16 +2927,19 @@ function renderAboutHeader(data = {}) {
   const splitBtn = document.getElementById('aboutSplitQuickEditBtn');
   // Fix: update only the text node, preserve the strength score span
   if (nameEl) {
-    // Find the span for the strength score if present
-    let scoreSpan = nameEl.querySelector('#overallStrengthScore');
-    nameEl.innerHTML = '';
-    nameEl.append(document.createTextNode(data.name || currentUser || 'Your Name'));
-    if (scoreSpan) nameEl.appendChild(scoreSpan);
+    // Always set innerHTML to include both name and score span
+    const displayName = data.name || currentUser || 'Your Name';
+    let score = '';
+    const scoreEl = document.getElementById('overallStrengthScore');
+    if (scoreEl && window.getOverallStrengthScore) {
+      const val = window.getOverallStrengthScore();
+      score = val ? ` Strength Score: ${val}%` : '';
+    }
+    nameEl.innerHTML = `${displayName} <span id="overallStrengthScore" style="font-size:1rem;color:#27ae60">${score}</span>`;
   }
   if (splitEl) {
-    if (data.trainingDays && data.workoutSplit) splitEl.textContent = `${data.trainingDays} days · ${data.workoutSplit}`;
-    else if (data.trainingDays) splitEl.textContent = `${data.trainingDays} day plan not set yet`;
-    else splitEl.textContent = data.workoutSplit || 'Add your workout split';
+    if (data.workoutSplit) splitEl.textContent = data.workoutSplit;
+    else splitEl.textContent = 'Add your workout split';
   }
   if (splitBtn) splitBtn.classList.toggle('hidden', !data.name && !data.goal && !data.trainingDays && !data.workoutSplit);
 }
