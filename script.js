@@ -2050,12 +2050,14 @@ async function saveWorkout() {
     alert('😴 You already logged a rest day for ' + dayLabel + '! You cannot log a workout on a rest day.');
     return;
   }
+  // Store date as local YYYY-MM-DD string
+  const localDateString = `${workoutDate.getFullYear()}-${String(workoutDate.getMonth() + 1).padStart(2, '0')}-${String(workoutDate.getDate()).padStart(2, '0')}`;
   showLoading();
   try {
     const res = await fetch(API + '/workouts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ muscle: currentMuscle, exercise: currentExercise, sets: validSets, date: workoutDate.toISOString() })
+      body: JSON.stringify({ muscle: currentMuscle, exercise: currentExercise, sets: validSets, date: localDateString })
     });
     await res.json();
     await loadSessions();
